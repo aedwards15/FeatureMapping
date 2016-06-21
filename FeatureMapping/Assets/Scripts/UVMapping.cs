@@ -9,7 +9,9 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 public class UVMapping : MonoBehaviour {
 
-	public Mesh TheMesh;
+    #region INITIALIZERS
+
+    public Mesh TheMesh;
 	public Mesh EyeMesh;
 	public Mesh ShirtMesh;
 	public Mesh PantMesh;
@@ -43,6 +45,17 @@ public class UVMapping : MonoBehaviour {
 	List<VectorI> altShirtArray;
 	List<VectorI> mainPantsArray;
 	List<VectorI> altPantsArray;
+
+    enum state
+    {
+        Body,
+        Face,
+        Eyes,
+        Shirt,
+        Pants
+    }
+
+    state currentState = state.Body;
 
 	[System.Serializable]
 	private class VectorI
@@ -79,7 +92,11 @@ public class UVMapping : MonoBehaviour {
 		}
 	}
 
-	int noseIndex = -1;
+    #endregion
+
+    #region START
+
+    int noseIndex = -1;
 	int x0Index = -1;
 	int x1Index = -1;
 	int y0Index = -1;
@@ -121,7 +138,9 @@ public class UVMapping : MonoBehaviour {
 			PantMesh = GameObject.FindGameObjectWithTag( "Pants" ).GetComponent<MeshFilter>().mesh;
 		}
 
-		/*int indexLeft = 0;
+        gameCamera = GameObject.FindGameObjectWithTag("MainCamera");
+
+        /*int indexLeft = 0;
 		int indexRight = 0;
 		int indexTop = 0;
 		int indexBottom = 0;
@@ -144,11 +163,11 @@ public class UVMapping : MonoBehaviour {
 		modelWidth = TheMesh.vertices[indexRight].x - TheMesh.vertices[indexLeft].x;
 		modelHeight = TheMesh.vertices[indexTop].y - TheMesh.vertices[indexBottom].y;
 		*/
-		
-		//txt = GameObject.Find( "Text" ).GetComponent<Text>();
-		//txt2 = GameObject.Find( "Text2" ).GetComponent<Text>();
 
-		theUVs = new Vector2[TheMesh.uv.Length];
+        //txt = GameObject.Find( "Text" ).GetComponent<Text>();
+        //txt2 = GameObject.Find( "Text2" ).GetComponent<Text>();
+
+        theUVs = new Vector2[TheMesh.uv.Length];
 		theUVs = TheMesh.uv;
 		theOldUvs = new Vector2[TheMesh.uv.Length];
 		theOldUvs = TheMesh.uv;
@@ -168,10 +187,10 @@ public class UVMapping : MonoBehaviour {
 		//if( headVerticesText != null && !String.IsNullOrEmpty( headVerticesText.text ) )
 		//{
 
-		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
-		{
-			File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
-		}
+		//if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
+		//{
+		//	File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
+		//}
 
 		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
 		{
@@ -200,13 +219,15 @@ public class UVMapping : MonoBehaviour {
 			String bodyVerticesText = sr.ReadToEnd();
 			parse = bodyVerticesText.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
 
-			for( int i = 0; i < parse.Length; i++ )
+            altBodyArray = new List<VectorI>();
+
+            for ( int i = 0; i < parse.Length; i++ )
 			{
 				int index = Convert.ToInt32( parse [i].Split( ',' ) [0] );
 				altBodyArray.Add( new VectorI (index, transform.TransformPoint( TheMesh.vertices [index] ), TheMesh.vertices [index]) );
 			}
 
-			sr = File.OpenText( Application.persistentDataPath + "/EyeVertices.txt" );
+			/*sr = File.OpenText( Application.persistentDataPath + "/EyeVertices.txt" );
 			String eyeVerticesText = sr.ReadToEnd();
 			parse = bodyVerticesText.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
 			x0RightEye = Convert.ToInt32(parse [0]);
@@ -257,25 +278,30 @@ public class UVMapping : MonoBehaviour {
 				int index = Convert.ToInt32( parse [i].Split( ',' ) [0] );
 				altPantsArray.Add( new VectorI (index, transform.TransformPoint( TheMesh.vertices [index] ), TheMesh.vertices [index]) );
 			}
+            */
 		}
 		else
 		{
 			LoadValues();
 		}
 
-		origRight = Camera.main.ViewportToWorldPoint( new Vector3 (0.2f, 0.5f, 0.75f) );
+		origRight = Camera.main.ViewportToWorldPoint( new Vector3 (0.2f, 0.5f, 0.5f) );
 		right = (GameObject)Instantiate( sphere, origRight, Quaternion.identity );
+        right.transform.parent = gameCamera.transform;
 
-		origLeft = Camera.main.ViewportToWorldPoint( new Vector3 (0.8f, 0.5f, 0.75f) );
+		origLeft = Camera.main.ViewportToWorldPoint( new Vector3 (0.8f, 0.5f, 0.5f) );
 		left = (GameObject)Instantiate( sphere, origLeft, Quaternion.identity );
+        left.transform.parent = gameCamera.transform;
 
-		origBottom = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.2f, 0.75f) );
+        origBottom = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.2f, 0.5f) );
 		bottom = (GameObject)Instantiate( sphere, origBottom, Quaternion.identity );
+        bottom.transform.parent = gameCamera.transform;
 
-		origTop = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.8f, 0.75f) );
+        origTop = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.8f, 0.5f) );
 		top = (GameObject)Instantiate( sphere, origTop, Quaternion.identity );
+        top.transform.parent = gameCamera.transform;
 
-		/*if( File.Exists( CoordinatesFileName ) )
+        /*if( File.Exists( CoordinatesFileName ) )
 		{
 			var sr = File.OpenText( CoordinatesFileName );
 			var line = sr.ReadLine();
@@ -294,7 +320,7 @@ public class UVMapping : MonoBehaviour {
 			}  
 		}*/
 
-		/*if( File.Exists( facialFeaturesFileName ) )
+        /*if( File.Exists( facialFeaturesFileName ) )
 		{
 			var sr = File.OpenText( facialFeaturesFileName );
 			var line = sr.ReadLine();
@@ -319,7 +345,7 @@ public class UVMapping : MonoBehaviour {
 			modelWidth = right.transform.position.x - left.transform.position.x;
 			modelHeight = top.transform.position.y - bottom.transform.position.y;
 		}*/
-	}
+    }
 
 	void LoadValues()
 	{
@@ -358,11 +384,11 @@ public class UVMapping : MonoBehaviour {
 		mainBodyArray.RemoveRange( 0, ( mainBodyArray.Count / 2 ) );
 
 		VectorI temp = ( from vert in mainBodyArray
-			select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[0];
+			select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[0];
 		x0Index = temp.Index;
 
 		temp = ( from vert in mainBodyArray
-			select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[0];
+			select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[0];
 		x1Index = temp.Index;
 
 		temp = ( from vert in mainBodyArray
@@ -585,8 +611,11 @@ public class UVMapping : MonoBehaviour {
 			select vert ).OrderByDescending( y => y.VectorLocal.y ).Take( 1 ).ToList() [0];
 		y1Pants = temp.Index;
 	}
+    #endregion
 
-	private List<GameObject> verticeSpheres;
+    #region LOAD
+
+    private List<GameObject> verticeSpheres;
 	Vector2 firstValue = new Vector2();
 	Vector2 secondValue = new Vector2();
 
@@ -598,7 +627,9 @@ public class UVMapping : MonoBehaviour {
 
 	private GameObject selectedPoint;
 
-	void Update()
+    private GameObject gameCamera;
+
+    void Update()
 	{
 		if( Input.GetKeyUp( KeyCode.UpArrow ) )
 		{
@@ -669,6 +700,11 @@ public class UVMapping : MonoBehaviour {
 						screenPoint = Camera.main.WorldToScreenPoint( selectedPoint.transform.position );
 						offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint( new Vector3 (Input.mousePosition.x, Input.mousePosition.y, screenPoint.z) );
 					}
+                    else if (hit.transform.gameObject.tag == "Player")
+                    {
+                        gameCamera.transform.position = new Vector3(0.0f, 1.83f, -5.86f);
+                        currentState = state.Face;
+                    }
 				}
 			}
 			else if( Input.GetMouseButton( 0 ) )
@@ -918,47 +954,72 @@ public class UVMapping : MonoBehaviour {
 			secondPoint.transform.position = new Vector3(point3.x, point3.y, -9.4f);
 		}
 	}
+    #endregion
 
-	private Vector2 first = new Vector2 ();
+    #region EVENT
+
+    private Vector2 first = new Vector2 ();
 	private Vector2 second = new Vector2 ();
 
 	void SetTheUVs()
 	{
-		SetEyes();
-		SetShirt();
-		SetPants();
+        if (currentState == state.Eyes)
+            SetEyes();
+        else if (currentState == state.Shirt)
+            SetShirt();
+        else if (currentState == state.Pants)
+            SetPants();
+        else
+        {
+            float s0 = EyeRight.x;
+            float s1 = EyeLeft.x + EyeLeft.width;
+            float t0 = Mouth.y;
+            float t1 = EyeLeft.y + EyeLeft.height;
 
-		float s0 = EyeRight.x;
-		float s1 = EyeLeft.x + EyeLeft.width;
-		float t0 = Mouth.y;
-		float t1 = EyeLeft.y + EyeLeft.height;
+            //float altered1 = ( (( Face.x + Face.width ) + ( EyeLeft.x + EyeLeft.width ) ) / 2 );
+            //float altered2 = (( Face.x + EyeRight.x ) / 2 );
+            //float alteredFaceWidth = (altered1 - altered2);
+            //float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - ((left.transform.position.x - origLeft.x))) -
+            //    (TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x)))));
+            float dsx = ((s1 - s0) / (TheMesh.vertices[x1Index].x - TheMesh.vertices[x0Index].x));
+            //Vector3 vect = transform.TransformPoint(TheMesh.vertices[x0Index]);
+            //vect.z = 0.5f;
+            //GameObject temp0 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
+            //vect = transform.TransformPoint(TheMesh.vertices[x1Index]);
+            //vect.z = 0.5f;
+            //GameObject temp1 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
+           
+            //float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + ((top.transform.position.y - origTop.y))) -
+            //    (TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y)))));
+            float dty = ((t1 - t0) / (TheMesh.vertices[y1Index].y - TheMesh.vertices[y0Index].y));
+            //vect = transform.TransformPoint(TheMesh.vertices[y0Index]);
+            //vect.z = 0.5f;
+            //GameObject temp2 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
+            //vect = transform.TransformPoint(TheMesh.vertices[y1Index]);
+            //vect.z = 0.5f;
+            //GameObject temp3 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
 
-		//float altered1 = ( (( Face.x + Face.width ) + ( EyeLeft.x + EyeLeft.width ) ) / 2 );
-		//float altered2 = (( Face.x + EyeRight.x ) / 2 );
-		//float alteredFaceWidth = (altered1 - altered2);
-		float dsx = ((s1 - s0) / ((TheMesh.vertices [x1Index].x - ((left.transform.position.x - origLeft.x) * 3)) - 
-			(TheMesh.vertices [x0Index].x - ((right.transform.position.x - origRight.x) * 3))));
-		float dty = ((t1 - t0) / ((TheMesh.vertices [y1Index].y + ((top.transform.position.y - origTop.y) * 5)) - 
-			(TheMesh.vertices [y0Index].y + ((bottom.transform.position.y - origBottom.y) * 5))));
+            //float sc = (s0 - ((TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x))) * dsx));
+            float sc = (s0 - (TheMesh.vertices[x0Index].x * dsx));
+            //float tc = (t0 - ((TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y))) * dty));
+            float tc = (t0 - (TheMesh.vertices[y0Index].y * dty));
 
-		float sc = ( s0 - ((TheMesh.vertices [x0Index].x - ((right.transform.position.x - origRight.x) * 3)) * dsx ));
-		float tc = ( t0 - ((TheMesh.vertices [y0Index].y + ((bottom.transform.position.y - origBottom.y) * 5)) * dty ));
+            for (int i = 0; i < mainBodyArray.Count; i++)
+            {
+                Vector2 vals = new Vector2(((mainBodyArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((mainBodyArray[i].VectorLocal.y * dty + tc) / ImageHeight));
+                theUVs[mainBodyArray[i].Index] = vals;
+                //TheMesh.uv[vertexArray[i].Index] = vals;
+            }
 
-		for( int i = 0; i < mainBodyArray.Count; i++ )
-		{
-			Vector2 vals = new Vector2 ((( mainBodyArray [i].VectorLocal.x * dsx + sc ) / ImageWidth), (( mainBodyArray [i].VectorLocal.y * dty + tc ) / ImageHeight));
-			theUVs [mainBodyArray [i].Index] = vals;
-			//TheMesh.uv[vertexArray[i].Index] = vals;
-		}
+            Vector2 val = new Vector2(((TheMesh.vertices[noseIndex].x * dsx + sc) / ImageWidth), ((TheMesh.vertices[noseIndex].y * dty + tc) / ImageHeight));
 
-		Vector2 val = new Vector2 ((( TheMesh.vertices [noseIndex].x * dsx + sc ) / ImageWidth), (( TheMesh.vertices [noseIndex].y * dty + tc ) / ImageHeight));
+            for (int i = 0; i < altBodyArray.Count; i++)
+            {
+                theUVs[altBodyArray[i].Index] = val;
+            }
 
-		for( int i = 0; i < altBodyArray.Count; i++ )
-		{
-			theUVs [altBodyArray [i].Index] = val;
-		}
-
-		TheMesh.uv = theUVs;
+            TheMesh.uv = theUVs;
+        }
 	}
 
 	void SetEyes()
@@ -1117,4 +1178,5 @@ public class UVMapping : MonoBehaviour {
 	{
 		TheMesh.uv = theOldUvs;
 	}
+    #endregion
 }
