@@ -15,7 +15,7 @@ public class UVMapping : MonoBehaviour {
 	public Mesh EyeMesh;
 	public Mesh ShirtMesh;
 	public Mesh PantMesh;
-	public GameObject sphere;
+	public GameObject adjuster;
 	public Rect EyeLeft = new Rect();
 	public Rect EyeRight = new Rect ();
 	public Rect Nose = new Rect ();
@@ -139,6 +139,9 @@ public class UVMapping : MonoBehaviour {
 		}
 
         gameCamera = GameObject.FindGameObjectWithTag("MainCamera");
+        playerModel = GameObject.FindGameObjectWithTag("Player");
+
+        playerModel.transform.position = new Vector3(0.0f, -2.19f, -4.82f);
 
         /*int indexLeft = 0;
 		int indexRight = 0;
@@ -202,14 +205,18 @@ public class UVMapping : MonoBehaviour {
 			noseIndex = Convert.ToInt32( parse[0].Split( '=' ) [1] );
 
 			x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
+            Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
 
 			x1Index = Convert.ToInt32( parse[2].Split( '=' ) [1] );
+            Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[x1Index]), Quaternion.identity);
 
-			y0Index = Convert.ToInt32( parse[3].Split( '=' ) [1] );
+            y0Index = Convert.ToInt32( parse[3].Split( '=' ) [1] );
+            Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[y0Index]), Quaternion.identity);
 
-			y1Index = Convert.ToInt32( parse[4].Split( '=' ) [1] );
+            y1Index = Convert.ToInt32( parse[4].Split( '=' ) [1] );
+            Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[y1Index]), Quaternion.identity);
 
-			for( int i = 5; i < parse.Length; i++ )
+            for ( int i = 5; i < parse.Length; i++ )
 			{
 				int index = Convert.ToInt32( parse [i].Split( ',' ) [0] );
 				mainBodyArray.Add( new VectorI (index, TheMesh.vertices [index]) );
@@ -285,21 +292,21 @@ public class UVMapping : MonoBehaviour {
 			LoadValues();
 		}
 
-		origRight = Camera.main.ViewportToWorldPoint( new Vector3 (0.2f, 0.5f, 0.5f) );
-		right = (GameObject)Instantiate( sphere, origRight, Quaternion.identity );
-        right.transform.parent = gameCamera.transform;
+        right = GameObject.FindGameObjectWithTag("Right");
+        origRight = right.transform.position;
+        right.SetActive(false);
 
-		origLeft = Camera.main.ViewportToWorldPoint( new Vector3 (0.8f, 0.5f, 0.5f) );
-		left = (GameObject)Instantiate( sphere, origLeft, Quaternion.identity );
-        left.transform.parent = gameCamera.transform;
+        left = GameObject.FindGameObjectWithTag("Left");
+        origLeft = left.transform.position;
+        left.SetActive(false);
 
-        origBottom = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.2f, 0.5f) );
-		bottom = (GameObject)Instantiate( sphere, origBottom, Quaternion.identity );
-        bottom.transform.parent = gameCamera.transform;
+        bottom = GameObject.FindGameObjectWithTag("Bottom");
+        origBottom = bottom.transform.position;
+        bottom.SetActive(false);
 
-        origTop = Camera.main.ViewportToWorldPoint( new Vector3 (0.5f, 0.8f, 0.5f) );
-		top = (GameObject)Instantiate( sphere, origTop, Quaternion.identity );
-        top.transform.parent = gameCamera.transform;
+        top = GameObject.FindGameObjectWithTag("Top");
+        origTop = top.transform.position;
+        top.SetActive(false);
 
         /*if( File.Exists( CoordinatesFileName ) )
 		{
@@ -372,14 +379,14 @@ public class UVMapping : MonoBehaviour {
 		mainBodyArray = ( from vert in mainBodyArray
 			select vert ).OrderBy( y => y.VectorLocal.y ).ToList();
 
-		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.7f ));
+		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.5f ));
 
-		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.7f ) );
+		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.5f ) );
 
 		mainBodyArray = ( from vert in mainBodyArray
 			select vert ).OrderBy( y => y.VectorLocal.z ).ToList();
 
-		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.7f ), ( mainBodyArray.Count / 2 ) );
+		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.5f ), ( mainBodyArray.Count / 2 ) );
 
 		mainBodyArray.RemoveRange( 0, ( mainBodyArray.Count / 2 ) );
 
@@ -628,6 +635,7 @@ public class UVMapping : MonoBehaviour {
 	private GameObject selectedPoint;
 
     private GameObject gameCamera;
+    private GameObject playerModel;
 
     void Update()
 	{
@@ -693,35 +701,81 @@ public class UVMapping : MonoBehaviour {
 
 				if( Physics.Raycast( ray, out hit ) )
 				{
-					if( hit.transform.gameObject.tag == "GameController" )
+					if( currentState != state.Body)
 					{
-						selectedPoint = hit.transform.gameObject;
+                        selectedPoint = hit.transform.gameObject;
 
-						screenPoint = Camera.main.WorldToScreenPoint( selectedPoint.transform.position );
-						offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint( new Vector3 (Input.mousePosition.x, Input.mousePosition.y, screenPoint.z) );
-					}
-                    else if (hit.transform.gameObject.tag == "Player")
-                    {
-                        gameCamera.transform.position = new Vector3(0.0f, 1.83f, -5.86f);
-                        currentState = state.Face;
+                        screenPoint = Camera.main.WorldToScreenPoint(selectedPoint.transform.position);
+                        offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
                     }
-				}
+                    else if (hit.transform.gameObject.tag == "Head")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
+                        currentState = state.Face;
+
+                        left.SetActive(true);
+                        right.SetActive(true);
+                        top.SetActive(true);
+                        bottom.SetActive(true);
+                    }
+                    else if (hit.transform.gameObject.tag == "Eyes")
+                    {
+                        //playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
+                        currentState = state.Eyes;
+                    }
+                    else if (hit.transform.gameObject.tag == "Shirt")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -2.944f, -7.549f);
+                        currentState = state.Shirt;
+                    }
+                    else if (hit.transform.gameObject.tag == "Pants")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -1.342f, -7.752f);
+                        currentState = state.Pants;
+                    }
+                }
 			}
 			else if( Input.GetMouseButton( 0 ) )
 			{
 				if( selectedPoint != null )
 				{
-					Vector3 cursorPoint = new Vector3 (Input.mousePosition.x, Input.mousePosition.y, screenPoint.z);
-					Vector3 cursorPosition = Camera.main.ScreenToWorldPoint( cursorPoint ) + offset;
-					selectedPoint.transform.position = cursorPosition;
-					SetTheUVs();
+                    Vector3 cursorPoint = new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z);
+                    Vector3 cursorPosition = Camera.main.ScreenToWorldPoint(cursorPoint) + offset;
+
+                    if (selectedPoint.tag == "Left" || selectedPoint.tag == "Right")
+                    {
+                        selectedPoint.transform.position = new Vector3(cursorPosition.x, selectedPoint.transform.position.y, selectedPoint.transform.position.z);
+                    }
+                    else
+                    {
+                        selectedPoint.transform.position = new Vector3(selectedPoint.transform.position.x, cursorPosition.y, selectedPoint.transform.position.z);
+                    }
+
+                    SetTheUVs();
 				}
 			}
 			else if( Input.GetMouseButtonUp( 0 ) )
 			{
 				if( selectedPoint != null )
 				{
-					selectedPoint = null;
+                    if (selectedPoint.tag == "Left")
+                    {
+                        selectedPoint.transform.position = origLeft;
+                    }
+                    else if (selectedPoint.tag == "Right")
+                    {
+                        selectedPoint.transform.position = origRight;
+                    }
+                    else if (selectedPoint.tag == "Top")
+                    {
+                        selectedPoint.transform.position = origTop;
+                    }
+                    else
+                    {
+                        selectedPoint.transform.position = origBottom;
+                    }
+
+                    selectedPoint = null;
 				}
 				else
 				{
@@ -785,8 +839,8 @@ public class UVMapping : MonoBehaviour {
 
 				if( firstPoint == null )
 				{
-					firstPoint = (GameObject)Instantiate( sphere, new Vector3 (point.x, point.y, -9.4f), Quaternion.identity );
-					secondPoint = (GameObject)Instantiate( sphere, new Vector3 (point.x, point.y, -9.4f), Quaternion.identity );
+					firstPoint = (GameObject)Instantiate( adjuster, new Vector3 (point.x, point.y, -9.4f), Quaternion.identity );
+					secondPoint = (GameObject)Instantiate( adjuster, new Vector3 (point.x, point.y, -9.4f), Quaternion.identity );
 
 					firstValue.x = point.x;
 					firstValue.y = point.y;
@@ -979,9 +1033,9 @@ public class UVMapping : MonoBehaviour {
             //float altered1 = ( (( Face.x + Face.width ) + ( EyeLeft.x + EyeLeft.width ) ) / 2 );
             //float altered2 = (( Face.x + EyeRight.x ) / 2 );
             //float alteredFaceWidth = (altered1 - altered2);
-            //float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - ((left.transform.position.x - origLeft.x))) -
-            //    (TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x)))));
-            float dsx = ((s1 - s0) / (TheMesh.vertices[x1Index].x - TheMesh.vertices[x0Index].x));
+            float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - ((left.transform.position.x - origLeft.x))) -
+                (TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x)))));
+            //float dsx = ((s1 - s0) / (TheMesh.vertices[x1Index].x - TheMesh.vertices[x0Index].x));
             //Vector3 vect = transform.TransformPoint(TheMesh.vertices[x0Index]);
             //vect.z = 0.5f;
             //GameObject temp0 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
@@ -989,9 +1043,9 @@ public class UVMapping : MonoBehaviour {
             //vect.z = 0.5f;
             //GameObject temp1 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
            
-            //float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + ((top.transform.position.y - origTop.y))) -
-            //    (TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y)))));
-            float dty = ((t1 - t0) / (TheMesh.vertices[y1Index].y - TheMesh.vertices[y0Index].y));
+            float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + ((top.transform.position.y - origTop.y))) -
+                (TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y)))));
+            //float dty = ((t1 - t0) / (TheMesh.vertices[y1Index].y - TheMesh.vertices[y0Index].y));
             //vect = transform.TransformPoint(TheMesh.vertices[y0Index]);
             //vect.z = 0.5f;
             //GameObject temp2 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
@@ -999,10 +1053,10 @@ public class UVMapping : MonoBehaviour {
             //vect.z = 0.5f;
             //GameObject temp3 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
 
-            //float sc = (s0 - ((TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x))) * dsx));
-            float sc = (s0 - (TheMesh.vertices[x0Index].x * dsx));
-            //float tc = (t0 - ((TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y))) * dty));
-            float tc = (t0 - (TheMesh.vertices[y0Index].y * dty));
+            float sc = (s0 - ((TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x))) * dsx));
+            //float sc = (s0 - (TheMesh.vertices[x0Index].x * dsx));
+            float tc = (t0 - ((TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y))) * dty));
+            //float tc = (t0 - (TheMesh.vertices[y0Index].y * dty));
 
             for (int i = 0; i < mainBodyArray.Count; i++)
             {
@@ -1151,28 +1205,10 @@ public class UVMapping : MonoBehaviour {
 		PantMesh.uv = pantsUVs;
 	}
 
-	void SetUVs2()
-	{
-		/*
-		if( isNose )
-		{
-			int result = (int)Math.Sqrt( theUVs.Length );
-			float xIncrement = FacialFeature.width / ( result - 1.0f );
-			float yIncrement = FacialFeature.height / ( result - 1.0f );
-			for( int y = 0; y < result; y++ )
-			{
-				for( int x = 0; x < result; x++ )
-				{
-					Vector2 uvResult = new Vector2 (( FacialFeature.x + ( x * xIncrement ) ) / ImageWidth, ( FacialFeature.y + ( y * yIncrement ) ) / ImageHeight);
-					int index = ( x + ( y * result ) );
-					theUVs [index] = uvResult;
-				}
-			}
+    void SetUVs2()
+    {
 
-			TheMesh.uv = theUVs;
-		}
-		*/
-	}
+    }
 
 	void SetOldUVs()
 	{
