@@ -795,39 +795,98 @@ public class UVMapping : MonoBehaviour {
 
 		if( Input.touchCount > 0)
 		{
-			if( Input.GetTouch( 0 ).phase == TouchPhase.Began )
-			{
-				Ray ray = Camera.main.ScreenPointToRay( Input.GetTouch(0).position );
-				RaycastHit hit;
+            if (Input.GetTouch(0).phase == TouchPhase.Began)
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position);
+                RaycastHit hit;
 
-				if( Physics.Raycast( ray, out hit ) )
-				{
-					if( hit.transform.gameObject.tag == "GameController" )
-					{
-						selectedPoint = hit.transform.gameObject;
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (currentState != state.Body && hit.transform.gameObject.transform.parent.tag != "Player")
+                    {
+                        selectedPoint = hit.transform.gameObject;
 
-						screenPoint = Camera.main.WorldToScreenPoint( selectedPoint.transform.position );
-						offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint( new Vector3 (Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z) );
-					}
-				}
-			}
-			else if( Input.GetTouch( 0 ).phase == TouchPhase.Moved )
-			{
-				if( selectedPoint != null )
-				{
-					Vector3 cursorPoint = new Vector3 (Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z);
-					Vector3 cursorPosition = Camera.main.ScreenToWorldPoint( cursorPoint ) + offset;
-					selectedPoint.transform.position = cursorPosition;
-					SetTheUVs();
-				}
-			}
-			else if( Input.GetTouch( 0 ).phase == TouchPhase.Ended )
-			{
-				if( selectedPoint != null )
-				{
-					selectedPoint = null;
-				}
-			}
+                        screenPoint = Camera.main.WorldToScreenPoint(selectedPoint.transform.position);
+                        offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z));
+                    }
+                    else if (hit.transform.gameObject.tag == "Head")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
+                        currentState = state.Face;
+
+                        left.SetActive(true);
+                        right.SetActive(true);
+                        top.SetActive(true);
+                        bottom.SetActive(true);
+                    }
+                    else if (hit.transform.gameObject.tag == "Eyes")
+                    {
+                        //playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
+                        currentState = state.Eyes;
+                    }
+                    else if (hit.transform.gameObject.tag == "Shirt")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -2.944f, -7.549f);
+                        currentState = state.Shirt;
+                    }
+                    else if (hit.transform.gameObject.tag == "Pants")
+                    {
+                        playerModel.transform.position = new Vector3(0.0f, -1.342f, -7.752f);
+                        currentState = state.Pants;
+                    }
+                }
+            }
+            else if (Input.GetTouch(0).phase == TouchPhase.Moved)
+            {
+                if (selectedPoint != null)
+                {
+                    Vector3 cursorPoint = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z);
+                    Vector3 cursorPosition = Camera.main.ScreenToWorldPoint(cursorPoint) + offset;
+
+                    if (selectedPoint.tag == "Left" || selectedPoint.tag == "Right")
+                    {
+                        selectedPoint.transform.position = new Vector3(cursorPosition.x, selectedPoint.transform.position.y, selectedPoint.transform.position.z);
+                    }
+                    else
+                    {
+                        selectedPoint.transform.position = new Vector3(selectedPoint.transform.position.x, cursorPosition.y, selectedPoint.transform.position.z);
+                    }
+
+                    SetTheUVs();
+                }
+            }
+            else if (Input.GetTouch(0).phase == TouchPhase.Ended)
+            {
+                if (selectedPoint != null)
+                {
+                    if (selectedPoint.tag == "Left")
+                    {
+                        leftMod += selectedPoint.transform.position.x - origLeft.x;
+                        selectedPoint.transform.position = origLeft;
+                    }
+                    else if (selectedPoint.tag == "Right")
+                    {
+                        rightMod += selectedPoint.transform.position.x - origRight.x;
+                        selectedPoint.transform.position = origRight;
+                    }
+                    else if (selectedPoint.tag == "Top")
+                    {
+                        topMod += selectedPoint.transform.position.y - origTop.y;
+                        selectedPoint.transform.position = origTop;
+                    }
+                    else
+                    {
+                        bottomMod += selectedPoint.transform.position.y - origBottom.y;
+                        selectedPoint.transform.position = origBottom;
+                    }
+
+                    selectedPoint = null;
+                }
+                else
+                {
+
+                }
+            }
 		}
 
 		// change the UV settings in the Inspector, then click the left mouse button to view
