@@ -103,11 +103,15 @@ public class UVMapping : MonoBehaviour {
 	int y1Index = -1;
 
 	Vector3 origRight = new Vector3();
+    float rightMod = 0f;
 	Vector3 origLeft = new Vector3();
-	Vector3 origTop = new Vector3();
-	Vector3 origBottom = new Vector3();
+    float leftMod = 0f;
+    Vector3 origTop = new Vector3();
+    float topMod = 0f;
+    Vector3 origBottom = new Vector3();
+    float bottomMod = 0f;
 
-	private GameObject left;
+    private GameObject left;
 	private GameObject right;
 	private GameObject top;
 	private GameObject bottom;
@@ -203,8 +207,9 @@ public class UVMapping : MonoBehaviour {
 			String[] parse = headVerticesText.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
 
 			noseIndex = Convert.ToInt32( parse[0].Split( '=' ) [1] );
+            Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[noseIndex]), Quaternion.identity);
 
-			x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
+            x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
             Instantiate(adjuster, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
 
 			x1Index = Convert.ToInt32( parse[2].Split( '=' ) [1] );
@@ -379,16 +384,16 @@ public class UVMapping : MonoBehaviour {
 		mainBodyArray = ( from vert in mainBodyArray
 			select vert ).OrderBy( y => y.VectorLocal.y ).ToList();
 
-		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.5f ));
+		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.57f ));
 
-		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.5f ) );
+		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.57f ) );
 
 		mainBodyArray = ( from vert in mainBodyArray
 			select vert ).OrderBy( y => y.VectorLocal.z ).ToList();
 
-		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.5f ), ( mainBodyArray.Count / 2 ) );
+		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.57f ), (int)( mainBodyArray.Count / 1.5f ) );
 
-		mainBodyArray.RemoveRange( 0, ( mainBodyArray.Count / 2 ) );
+		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.5f ) );
 
 		VectorI temp = ( from vert in mainBodyArray
 			select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[0];
@@ -701,7 +706,7 @@ public class UVMapping : MonoBehaviour {
 
 				if( Physics.Raycast( ray, out hit ) )
 				{
-					if( currentState != state.Body)
+					if( currentState != state.Body && hit.transform.gameObject.transform.parent.tag != "Player")
 					{
                         selectedPoint = hit.transform.gameObject;
 
@@ -760,18 +765,22 @@ public class UVMapping : MonoBehaviour {
 				{
                     if (selectedPoint.tag == "Left")
                     {
+                        leftMod += selectedPoint.transform.position.x - origLeft.x;
                         selectedPoint.transform.position = origLeft;
                     }
                     else if (selectedPoint.tag == "Right")
                     {
+                        rightMod += selectedPoint.transform.position.x - origRight.x;
                         selectedPoint.transform.position = origRight;
                     }
                     else if (selectedPoint.tag == "Top")
                     {
+                        topMod += selectedPoint.transform.position.y - origTop.y;
                         selectedPoint.transform.position = origTop;
                     }
                     else
                     {
+                        bottomMod += selectedPoint.transform.position.y - origBottom.y;
                         selectedPoint.transform.position = origBottom;
                     }
 
@@ -1033,8 +1042,8 @@ public class UVMapping : MonoBehaviour {
             //float altered1 = ( (( Face.x + Face.width ) + ( EyeLeft.x + EyeLeft.width ) ) / 2 );
             //float altered2 = (( Face.x + EyeRight.x ) / 2 );
             //float alteredFaceWidth = (altered1 - altered2);
-            float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - ((left.transform.position.x - origLeft.x))) -
-                (TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x)))));
+            float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - (left.transform.position.x + leftMod - origLeft.x)) -
+                (TheMesh.vertices[x0Index].x - (right.transform.position.x + rightMod - origRight.x))));
             //float dsx = ((s1 - s0) / (TheMesh.vertices[x1Index].x - TheMesh.vertices[x0Index].x));
             //Vector3 vect = transform.TransformPoint(TheMesh.vertices[x0Index]);
             //vect.z = 0.5f;
@@ -1043,8 +1052,8 @@ public class UVMapping : MonoBehaviour {
             //vect.z = 0.5f;
             //GameObject temp1 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
            
-            float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + ((top.transform.position.y - origTop.y))) -
-                (TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y)))));
+            float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + (top.transform.position.y + topMod - origTop.y)) -
+                (TheMesh.vertices[y0Index].y + (bottom.transform.position.y + bottomMod - origBottom.y))));
             //float dty = ((t1 - t0) / (TheMesh.vertices[y1Index].y - TheMesh.vertices[y0Index].y));
             //vect = transform.TransformPoint(TheMesh.vertices[y0Index]);
             //vect.z = 0.5f;
@@ -1053,9 +1062,9 @@ public class UVMapping : MonoBehaviour {
             //vect.z = 0.5f;
             //GameObject temp3 = (GameObject)Instantiate(sphere, vect, Quaternion.identity);
 
-            float sc = (s0 - ((TheMesh.vertices[x0Index].x - ((right.transform.position.x - origRight.x))) * dsx));
+            float sc = (s0 - ((TheMesh.vertices[x0Index].x - (right.transform.position.x + rightMod - origRight.x)) * dsx));
             //float sc = (s0 - (TheMesh.vertices[x0Index].x * dsx));
-            float tc = (t0 - ((TheMesh.vertices[y0Index].y + ((bottom.transform.position.y - origBottom.y))) * dty));
+            float tc = (t0 - ((TheMesh.vertices[y0Index].y + (bottom.transform.position.y + bottomMod - origBottom.y)) * dty));
             //float tc = (t0 - (TheMesh.vertices[y0Index].y * dty));
 
             for (int i = 0; i < mainBodyArray.Count; i++)
@@ -1069,7 +1078,8 @@ public class UVMapping : MonoBehaviour {
 
             for (int i = 0; i < altBodyArray.Count; i++)
             {
-                theUVs[altBodyArray[i].Index] = val;
+                Vector2 vals = new Vector2(((altBodyArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((altBodyArray[i].VectorLocal.y * dty + tc) / ImageHeight));
+                theUVs[altBodyArray[i].Index] = vals;
             }
 
             TheMesh.uv = theUVs;
