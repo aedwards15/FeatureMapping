@@ -170,10 +170,10 @@ public class UVMapping : MonoBehaviour {
 		//This is an array of the "important" vertices (ie the face)
 		mainBodyArray = new List<VectorI> ();
 
-		//if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
-		//{
-		//	File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
-		//}
+		/*if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
+		{
+			File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
+		}*/
 
 		//On load-up, if the file containing a listing of all 'important' head vertices exists
 		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
@@ -188,7 +188,7 @@ public class UVMapping : MonoBehaviour {
 
 			//Get point associated with nose (ie the highest z-valued item in the head
 			noseIndex = Convert.ToInt32( parse[0].Split( '=' ) [1] );
-            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[noseIndex]), Quaternion.identity);
+            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[noseIndex]), Quaternion.identity);
 
 			//Get point associated with far right (from model's perspective) of face
             x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
@@ -196,15 +196,15 @@ public class UVMapping : MonoBehaviour {
 
 			//Get point associated with far left (from model's perspective) of face
 			x1Index = Convert.ToInt32( parse[2].Split( '=' ) [1] );
-            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x1Index]), Quaternion.identity);
+            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x1Index]), Quaternion.identity);
 
 			//Get point associated with far bottom of face
             y0Index = Convert.ToInt32( parse[3].Split( '=' ) [1] );
-            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y0Index]), Quaternion.identity);
+            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y0Index]), Quaternion.identity);
 
 			//Get point associated with far top of face
             y1Index = Convert.ToInt32( parse[4].Split( '=' ) [1] );
-            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y1Index]), Quaternion.identity);
+            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y1Index]), Quaternion.identity);
 
 			//Get the remainder of the "important" points, their index and their local vertex (starting after the above reference points)
             for ( int i = 5; i < parse.Length; i++ )
@@ -228,22 +228,27 @@ public class UVMapping : MonoBehaviour {
 				altBodyArray.Add( new VectorI (index, transform.TransformPoint( TheMesh.vertices [index] ), TheMesh.vertices [index]) );
 			}
 
-			//Eye, Shirt, and Pants not currently implemented
-
-
-			/*sr = File.OpenText( Application.persistentDataPath + "/EyeVertices.txt" );
+			sr = File.OpenText( Application.persistentDataPath + "/EyeVertices.txt" );
 			String eyeVerticesText = sr.ReadToEnd();
-			parse = bodyVerticesText.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
-			x0RightEye = Convert.ToInt32(parse [0]);
-			x1RightEye = Convert.ToInt32(parse [1]);
-			y1RightEye = Convert.ToInt32(parse [2]);
-			y0RightEye = Convert.ToInt32(parse [3]);
-			x0LeftEye = Convert.ToInt32(parse [4]);
-			x1LeftEye = Convert.ToInt32(parse [5]);
-			y1LeftEye = Convert.ToInt32(parse [6]);
-			y0LeftEye = Convert.ToInt32(parse [7]);
+			parse = eyeVerticesText.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
+			x0RightEye = Convert.ToInt32( parse[ 0 ].Split( '=' )[ 1 ] );
+			x1RightEye = Convert.ToInt32(parse[ 1 ].Split( '=' )[ 1 ]);
+			y1RightEye = Convert.ToInt32(parse[ 2 ].Split( '=' )[ 1 ]);
+			y0RightEye = Convert.ToInt32(parse[ 3 ].Split( '=' )[ 1 ]);
+			x0LeftEye = Convert.ToInt32(parse[ 4 ].Split( '=' )[ 1 ]);
+			x1LeftEye = Convert.ToInt32(parse[ 5 ].Split( '=' )[ 1 ]);
+			y1LeftEye = Convert.ToInt32(parse[ 6 ].Split( '=' )[ 1 ]);
+			y0LeftEye = Convert.ToInt32(parse[ 7 ].Split( '=' )[ 1 ]);
 
-			TextAsset shirtVerticesText = (TextAsset)Resources.Load( "ShirtVertices" );
+			//Temporary
+			FindShirtValues();
+			FindPantsValues();
+
+			//Instantiate(pointLocation, transform.TransformPoint(ShirtMesh.vertices[y0Shirt]), Quaternion.identity);
+
+			//Shirt, and Pants not currently implemented
+
+			/*TextAsset shirtVerticesText = (TextAsset)Resources.Load( "ShirtVertices" );
 
 			parse = shirtVerticesText.text.Split( new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries );
 
@@ -281,8 +286,7 @@ public class UVMapping : MonoBehaviour {
 			{
 				int index = Convert.ToInt32( parse [i].Split( ',' ) [0] );
 				altPantsArray.Add( new VectorI (index, transform.TransformPoint( TheMesh.vertices [index] ), TheMesh.vertices [index]) );
-			}
-            */
+			}*/
 		}
 		else
 		{
@@ -363,14 +367,14 @@ public class UVMapping : MonoBehaviour {
 		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.5f ) );
 
 		//May not need to instantiate a VectorI for this, but..
-		//Grab the lowest x-value point (ie the point on the right side of face from model's perspective)
+		//Grab the highest x-value point (ie the x-ordering on the model is reverse, so highest is on right from model's perspective)
 		//This will be used later for UV mapping
 		x0Index = ( from vert in mainBodyArray
-		            select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ].Index;
-
-		//Now grab highest x-value point (ie the point on the left side of the face from model's perspective)
-		x1Index = ( from vert in mainBodyArray
 		            select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ].Index;
+
+		//Now grab lowest x-value point (ie the point on the left side of the face from model's perspective)
+		x1Index = ( from vert in mainBodyArray
+		            select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ].Index;
 
 		//Grab the lowest y-value point (ie the point lowest on the face)
 		y0Index = ( from vert in mainBodyArray
@@ -540,19 +544,19 @@ public class UVMapping : MonoBehaviour {
 		altShirtArray.RemoveRange( 0, altShirtArray.Count / 2 );*/
 
 		VectorI temp = ( from vert in mainShirtArray
-			select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
+		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x0Shirt = temp.Index;
 
 		temp = ( from vert in mainShirtArray
-			select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
+		         select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x1Shirt = temp.Index;
 
 		temp = ( from vert in mainShirtArray
-			select vert ).OrderBy( y => y.VectorLocal.y ).Take( 1 ).ToList() [0];
+		         select vert ).OrderBy( y => y.VectorLocal.y ).Take( 1 ).ToList()[ 0 ];
 		y0Shirt = temp.Index;
 
 		temp = ( from vert in mainShirtArray
-			select vert ).OrderByDescending( y => y.VectorLocal.y ).Take( 1 ).ToList() [0];
+		         select vert ).OrderByDescending( y => y.VectorLocal.y ).Take( 1 ).ToList()[ 0 ];
 		y1Shirt = temp.Index;
 	}
 
@@ -582,11 +586,11 @@ public class UVMapping : MonoBehaviour {
 		altShirtArray.RemoveRange( 0, altShirtArray.Count / 2 );*/
 
 		VectorI temp = ( from vert in mainPantsArray
-			select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
+		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x0Pants = temp.Index;
 
 		temp = ( from vert in mainPantsArray
-			select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
+		         select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x1Pants = temp.Index;
 
 		temp = ( from vert in mainPantsArray
@@ -870,11 +874,11 @@ public class UVMapping : MonoBehaviour {
 
 			//calculate values as per algorithm using the points given in image and model
 			//adjusting to user input
-            float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - (left.transform.position.x + leftMod - origLeft.x)) -
-                (TheMesh.vertices[x0Index].x - (right.transform.position.x + rightMod - origRight.x))));
+			float dsx = ( ( s1 - s0 ) / ( ( TheMesh.vertices[ x1Index ].x - ( left.transform.position.x + leftMod - origLeft.x ) ) -
+			                     ( TheMesh.vertices[ x0Index ].x - ( right.transform.position.x + rightMod - origRight.x ) ) ) );
            
-            float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + (top.transform.position.y + topMod - origTop.y)) -
-                (TheMesh.vertices[y0Index].y + (bottom.transform.position.y + bottomMod - origBottom.y))));
+			float dty = ( ( t1 - t0 ) / ( ( TheMesh.vertices[ y1Index ].y + ( top.transform.position.y + topMod - origTop.y ) ) -
+			                     ( TheMesh.vertices[ y0Index ].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
 
             float sc = (s0 - ((TheMesh.vertices[x0Index].x - (right.transform.position.x + rightMod - origRight.x)) * dsx));
             float tc = (t0 - ((TheMesh.vertices[y0Index].y + (bottom.transform.position.y + bottomMod - origBottom.y)) * dty));
@@ -951,13 +955,13 @@ public class UVMapping : MonoBehaviour {
 		float t0 = (ImageHeight / 2) - 300;
 		float t1 = (ImageHeight / 2) + 300;
 
-		float dsx = ( ( s1 - s0 ) / ( ( ShirtMesh.vertices [x1Shirt].x + ( ( left.transform.position.x - origLeft.x ) * 6 ) ) -
-		            ( ShirtMesh.vertices [x0Shirt].x - ( ( right.transform.position.x - origRight.x ) * 6 ) ) ) );
-		float dty = ( ( t1 - t0 ) / ( ( ShirtMesh.vertices [y1Shirt].y + ( ( top.transform.position.y - origTop.y ) * 15 ) ) -
-		            ( ShirtMesh.vertices [y0Shirt].y - ( ( bottom.transform.position.y - origBottom.y ) * 15 ) ) ) );
+		float dsx = ( ( s1 - s0 ) / ( ( ShirtMesh.vertices[ x0Shirt ].x + ( right.transform.position.x + leftMod - origLeft.x ) ) -
+			( ShirtMesh.vertices[ x1Shirt ].x - ( left.transform.position.x + rightMod - origRight.x ) ) ) );
+		float dty = ( ( t1 - t0 ) / ( ( ShirtMesh.vertices[ y1Shirt ].y + ( top.transform.position.y + topMod - origTop.y ) ) -
+		            ( ShirtMesh.vertices[ y0Shirt ].y - ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
 
-		float sc = ( s0 - ( ( ShirtMesh.vertices [x0Shirt].x - ( ( right.transform.position.x - origRight.x ) * 6 ) ) * dsx ) );
-		float tc = ( t0 - ( ( ShirtMesh.vertices [y0Shirt].y - ( ( bottom.transform.position.y - origBottom.y ) * 15 ) ) * dty ) );
+		float sc = ( s0 - ( ( ShirtMesh.vertices [x1Shirt].x - ( left.transform.position.x + rightMod - origRight.x ) ) * dsx ) );
+		float tc = ( t0 - ( ( ShirtMesh.vertices [y0Shirt].y - ( bottom.transform.position.y + bottomMod - origBottom.y ) ) * dty ) );
 
 		try
 		{
@@ -990,13 +994,14 @@ public class UVMapping : MonoBehaviour {
 		float t0 = (ImageHeight / 2) - 600;
 		float t1 = (ImageHeight / 2);
 
-		float dsx = ( ( s1 - s0 ) / ( ( PantMesh.vertices [x1Pants].x - ( ( left.transform.position.x - origLeft.x ) * 6 ) ) -
-			( PantMesh.vertices [x0Pants].x + ( ( right.transform.position.x - origRight.x ) * 6 ) ) ) );
-		float dty = ( ( t1 - t0 ) / ( ( PantMesh.vertices [y1Pants].y - ( ( top.transform.position.y - origTop.y ) * 15 ) ) -
-			( PantMesh.vertices [y0Pants].y + ( ( bottom.transform.position.y - origBottom.y ) * 15 ) ) ) );
+		float dsx = ( ( s1 - s0 ) / ( ( PantMesh.vertices[ x1Pants ].x - ( left.transform.position.x + leftMod - origLeft.x ) ) -
+		            ( PantMesh.vertices[ x0Pants ].x + ( right.transform.position.x + rightMod - origRight.x ) ) ) );
 
-		float sc = ( s0 - ( ( PantMesh.vertices [x0Pants].x + ( ( right.transform.position.x - origRight.x ) * 6 ) ) * dsx ) );
-		float tc = ( t0 - ( ( PantMesh.vertices [y0Pants].y + ( ( bottom.transform.position.y - origBottom.y ) * 15 ) ) * dty ) );
+		float dty = ( ( t1 - t0 ) / ( ( PantMesh.vertices[ y1Pants ].y - ( top.transform.position.y + topMod - origTop.y ) ) -
+		            ( PantMesh.vertices[ y0Pants ].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
+
+		float sc = ( s0 - ( ( PantMesh.vertices [x0Pants].x + ( right.transform.position.x + rightMod - origRight.x ) ) * dsx ) );
+		float tc = ( t0 - ( ( PantMesh.vertices [y0Pants].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) * dty ) );
 
 		try
 		{
