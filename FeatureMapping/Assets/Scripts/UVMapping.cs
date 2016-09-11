@@ -70,11 +70,35 @@ public class UVMapping : MonoBehaviour {
 		}
 	}
 
+    private class AdjustmentList
+    {
+        public AdjustmentList ReferencedAdjustments = null;
+
+        public float LeftModification = 0f;
+        public float RightModification = 0f;
+        public float TopModification = 0f;
+        public float BottomModification = 0f;
+
+        public AdjustmentList()
+        {
+            LeftModification = 0f;
+            RightModification = 0f;
+            TopModification = 0f;
+            BottomModification = 0f;
+        }
+
+        public AdjustmentList(AdjustmentList myList)
+        {
+            ReferencedAdjustments = myList;
+        }
+    }
+
 	enum state
 	{
 		Body,
 		Face,
-		Eyes,
+        EyeR,
+		EyeL,
 		Shirt,
 		Pants
 	}
@@ -119,11 +143,13 @@ public class UVMapping : MonoBehaviour {
 	Vector3 origTop = new Vector3();
 	Vector3 origBottom = new Vector3();
 
-	//how far adjusters have moved
-    float rightMod = 0f;
-    float leftMod = 0f;
-    float topMod = 0f;
-    float bottomMod = 0f;
+    //how far adjusters have moved
+    AdjustmentList currentMods;
+    AdjustmentList faceMods = new AdjustmentList();
+    AdjustmentList shirtMods = new AdjustmentList();
+    AdjustmentList pantMods = new AdjustmentList();
+    AdjustmentList eyeLMods = new AdjustmentList();
+    AdjustmentList eyeRMods = new AdjustmentList();
 
 	//the adjusters themselves (unitialized)
     GameObject left;
@@ -170,10 +196,10 @@ public class UVMapping : MonoBehaviour {
 		//This is an array of the "important" vertices (ie the face)
 		mainBodyArray = new List<VectorI> ();
 
-		/*if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
+		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
 		{
 			File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
-		}*/
+		}
 
 		//On load-up, if the file containing a listing of all 'important' head vertices exists
 		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
@@ -192,7 +218,7 @@ public class UVMapping : MonoBehaviour {
 
 			//Get point associated with far right (from model's perspective) of face
             x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
-            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
+            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
 
 			//Get point associated with far left (from model's perspective) of face
 			x1Index = Convert.ToInt32( parse[2].Split( '=' ) [1] );
@@ -350,10 +376,10 @@ public class UVMapping : MonoBehaviour {
 
 		//We only want the top third-ish of values of the torso (ie the head)
 		//So copy the rest of the values to temp
-		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.57f ));
+		mainBodyArray.CopyTo( 0, temp1, 0, (int)( mainBodyArray.Count / 1.6f ));
 
 		//and get rid of them from the main array
-		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.57f ) );
+		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.6f ) );
 
 		//Next, order by z-value
 		mainBodyArray = ( from vert in mainBodyArray
@@ -361,19 +387,19 @@ public class UVMapping : MonoBehaviour {
 
 		//We only want the front third-ish of values of the head (ie the face)
 		//So copy the rest of the values to temp
-		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.57f ), (int)( mainBodyArray.Count / 1.5f ) );
+		mainBodyArray.CopyTo( 0, temp1, (int)(TheMesh.vertices.Length / 1.6f ), (int)( mainBodyArray.Count / 2f ) );
 
 		//and get rid of them from the main array
-		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 1.5f ) );
+		mainBodyArray.RemoveRange( 0, (int)( mainBodyArray.Count / 2f ) );
 
-		//May not need to instantiate a VectorI for this, but..
-		//Grab the highest x-value point (ie the x-ordering on the model is reverse, so highest is on right from model's perspective)
-		//This will be used later for UV mapping
-		x0Index = ( from vert in mainBodyArray
-		            select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ].Index;
+        //May not need to instantiate a VectorI for this, but..
+        //Grab the lowest x-value point (ie the x-ordering on the model is reverse, so highest is on right from model's perspective)
+        //This will be used later for UV mapping
+        x0Index = (from vert in mainBodyArray
+                   select vert).OrderByDescending(y => y.VectorLocal.x).Take(1).ToList()[0].Index;
 
-		//Now grab lowest x-value point (ie the point on the left side of the face from model's perspective)
-		x1Index = ( from vert in mainBodyArray
+        //Now grab lowest x-value point (ie the point on the left side of the face from model's perspective)
+        x1Index = ( from vert in mainBodyArray
 		            select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ].Index;
 
 		//Grab the lowest y-value point (ie the point lowest on the face)
@@ -466,15 +492,16 @@ public class UVMapping : MonoBehaviour {
 		leftVerts = ( from vert in leftVerts
 			select vert ).OrderBy( y => y.VectorLocal.z ).ToList();
 
-		rightVerts.RemoveRange( 0, (int)(rightVerts.Count / 2f) );
+		rightVerts.RemoveRange( 0, (int)(rightVerts.Count / 2.5f) );
 
-		leftVerts.RemoveRange( 0, (int)(leftVerts.Count / 2f) );
+		leftVerts.RemoveRange( 0, (int)(leftVerts.Count / 2.5f) );
 
 		VectorI temp = ( from vert in rightVerts
 		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
 		x0RightEye = temp.Index;
+        Instantiate(pointLocation, transform.TransformPoint(EyeMesh.vertices[x0RightEye]), Quaternion.identity);
 
-		temp = ( from vert in rightVerts
+        temp = ( from vert in rightVerts
 		         select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
 		x1RightEye = temp.Index;
 
@@ -547,7 +574,7 @@ public class UVMapping : MonoBehaviour {
 		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x0Shirt = temp.Index;
 
-		temp = ( from vert in mainShirtArray
+        temp = ( from vert in mainShirtArray
 		         select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x1Shirt = temp.Index;
 
@@ -555,7 +582,7 @@ public class UVMapping : MonoBehaviour {
 		         select vert ).OrderBy( y => y.VectorLocal.y ).Take( 1 ).ToList()[ 0 ];
 		y0Shirt = temp.Index;
 
-		temp = ( from vert in mainShirtArray
+        temp = ( from vert in mainShirtArray
 		         select vert ).OrderByDescending( y => y.VectorLocal.y ).Take( 1 ).ToList()[ 0 ];
 		y1Shirt = temp.Index;
 	}
@@ -603,7 +630,7 @@ public class UVMapping : MonoBehaviour {
 	}
     #endregion
 
-    #region LOAD
+    #region UPDATE
 
 	//Used in Update, seemed silly to recreate these each time Update is called (every 1/60th a second)
 	private Vector3 screenPoint;
@@ -613,6 +640,8 @@ public class UVMapping : MonoBehaviour {
 	private GameObject secondPoint;
 
 	private GameObject selectedPoint;
+
+    private bool isRightEye = false;
 
     void Update()
 	{
@@ -642,19 +671,35 @@ public class UVMapping : MonoBehaviour {
                         playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
                         currentState = state.Face;
 
-						//Show the adjuster bars
-						left.SetActive(true);
+                        currentMods = new AdjustmentList(faceMods);
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
 						right.SetActive(true);
 						top.SetActive(true);
 						bottom.SetActive(true);
                     }
                     else if (hit.transform.gameObject.tag == "Eyes")
                     {
-                        //playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
-                        currentState = state.Eyes;
+                        if (!isRightEye)
+                        {
+                            isRightEye = true;
+                            playerModel.transform.position = new Vector3(0.06f, -3.84f, -8.99f);
+                            currentState = state.EyeR;
 
-						//Show the adjuster bars
-						left.SetActive(true);
+                            currentMods = new AdjustmentList(eyeRMods);
+                        }
+                        else
+                        {
+                            isRightEye = false;
+                            playerModel.transform.position = new Vector3(-0.06f, -3.84f, -8.99f);
+                            currentState = state.EyeL;
+
+                            currentMods = new AdjustmentList(eyeLMods);
+                        }
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
 						right.SetActive(true);
 						top.SetActive(true);
 						bottom.SetActive(true);
@@ -664,8 +709,10 @@ public class UVMapping : MonoBehaviour {
                         playerModel.transform.position = new Vector3(0.0f, -2.944f, -7.549f);
                         currentState = state.Shirt;
 
-						//Show the adjuster bars
-						left.SetActive(true);
+                        currentMods = new AdjustmentList(shirtMods);
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
 						right.SetActive(true);
 						top.SetActive(true);
 						bottom.SetActive(true);
@@ -675,8 +722,10 @@ public class UVMapping : MonoBehaviour {
                         playerModel.transform.position = new Vector3(0.0f, -1.342f, -7.752f);
                         currentState = state.Pants;
 
-						//Show the adjuster bars
-						left.SetActive(true);
+                        currentMods = new AdjustmentList(pantMods);
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
 						right.SetActive(true);
 						top.SetActive(true);
 						bottom.SetActive(true);
@@ -713,22 +762,22 @@ public class UVMapping : MonoBehaviour {
 					//and an adjuster was selected, move it back to it's original location and keep track of the difference
                     if (selectedPoint.tag == "Left")
                     {
-                        leftMod += selectedPoint.transform.position.x - origLeft.x;
+                        currentMods.ReferencedAdjustments.LeftModification += origLeft.x - selectedPoint.transform.position.x;
                         selectedPoint.transform.position = origLeft;
                     }
                     else if (selectedPoint.tag == "Right")
                     {
-                        rightMod += selectedPoint.transform.position.x - origRight.x;
+                        currentMods.ReferencedAdjustments.RightModification += origRight.x - selectedPoint.transform.position.x;
                         selectedPoint.transform.position = origRight;
                     }
                     else if (selectedPoint.tag == "Top")
                     {
-                        topMod += selectedPoint.transform.position.y - origTop.y;
+                        currentMods.ReferencedAdjustments.TopModification += origTop.y - selectedPoint.transform.position.y;
                         selectedPoint.transform.position = origTop;
                     }
                     else
                     {
-                        bottomMod += selectedPoint.transform.position.y - origBottom.y;
+                        currentMods.ReferencedAdjustments.BottomModification += origBottom.y - selectedPoint.transform.position.y;
                         selectedPoint.transform.position = origBottom;
                     }
 
@@ -767,7 +816,7 @@ public class UVMapping : MonoBehaviour {
                     else if (hit.transform.gameObject.tag == "Eyes")
                     {
                         //playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
-                        currentState = state.Eyes;
+                        //currentState = state.Eyes;
                     }
                     else if (hit.transform.gameObject.tag == "Shirt")
                     {
@@ -806,22 +855,22 @@ public class UVMapping : MonoBehaviour {
                 {
                     if (selectedPoint.tag == "Left")
                     {
-                        leftMod += selectedPoint.transform.position.x - origLeft.x;
+                        currentMods.ReferencedAdjustments.LeftModification += selectedPoint.transform.position.x - origLeft.x;
                         selectedPoint.transform.position = origLeft;
                     }
                     else if (selectedPoint.tag == "Right")
                     {
-                        rightMod += selectedPoint.transform.position.x - origRight.x;
+                        currentMods.ReferencedAdjustments.RightModification += selectedPoint.transform.position.x - origRight.x;
                         selectedPoint.transform.position = origRight;
                     }
                     else if (selectedPoint.tag == "Top")
                     {
-                        topMod += selectedPoint.transform.position.y - origTop.y;
+                        currentMods.ReferencedAdjustments.TopModification += selectedPoint.transform.position.y - origTop.y;
                         selectedPoint.transform.position = origTop;
                     }
                     else
                     {
-                        bottomMod += selectedPoint.transform.position.y - origBottom.y;
+                        currentMods.ReferencedAdjustments.BottomModification += selectedPoint.transform.position.y - origBottom.y;
                         selectedPoint.transform.position = origBottom;
                     }
 
@@ -837,7 +886,7 @@ public class UVMapping : MonoBehaviour {
 	void SetTheUVs()
 	{
 		//Find out which object has been selected and set there UV values
-        if (currentState == state.Eyes)
+        if (currentState == state.EyeR || currentState == state.EyeL)
             SetEyes();
         else if (currentState == state.Shirt)
             SetShirt();
@@ -845,56 +894,75 @@ public class UVMapping : MonoBehaviour {
             SetPants();
         else
         {
-			//////////////////////////////
-			/// 
-			/// Algorithm for UV Mapping from Image to Model
-			/// 
-			/// S = X * dsx + sc
-			/// sc = s0 - x0 * dsx
-			/// dsx = (s1 - s0) / (x1 - x0)
-			/// 
-			/// and
-			/// 
-			/// T = Y * dty + tc
-			/// tc = t0 - y0 * dty
-			/// dty = (t1 - t0) / (y1 - y0)
-			/// 
-			/// Where:
-			/// (S,T) are the coordinates on the image calculated from the (X,Y) coordinate of the model
-			/// (x0,y0),(x1,y1) and (s0,t0),(s1,t1) describe the bounds of the model and the image respectively
-			/// 
-			//////////////////////////////
+            //////////////////////////////
+            /// 
+            /// Algorithm for UV Mapping from Image to Model
+            /// 
+            /// S = X * dsx + sc
+            /// sc = s0 - x0 * dsx
+            /// dsx = (s1 - s0) / (x1 - x0)
+            /// 
+            /// and
+            /// 
+            /// T = Y * dty + tc
+            /// tc = t0 - y0 * dty
+            /// dty = (t1 - t0) / (y1 - y0)
+            /// 
+            /// Where:
+            /// (S,T) are the coordinates on the image calculated from the (X,Y) coordinate of the model
+            /// (x0,y0),(x1,y1) and (s0,t0),(s1,t1) describe the bounds of the model and the image respectively
+            /// 
+            //////////////////////////////
 
-
-			//Get the points needed for mapping from the supplied image
-            float s0 = EyeRight.x;
+            //Get the points needed for mapping from the supplied image
+            /*float s0 = EyeRight.x;
             float s1 = EyeLeft.x + EyeLeft.width;
             float t0 = Mouth.y;
-            float t1 = EyeLeft.y + EyeLeft.height;
+            float t1 = EyeLeft.y + EyeLeft.height;*/
 
-			//calculate values as per algorithm using the points given in image and model
-			//adjusting to user input
-			float dsx = ( ( s1 - s0 ) / ( ( TheMesh.vertices[ x1Index ].x - ( left.transform.position.x + leftMod - origLeft.x ) ) -
-			                     ( TheMesh.vertices[ x0Index ].x - ( right.transform.position.x + rightMod - origRight.x ) ) ) );
-           
-			float dty = ( ( t1 - t0 ) / ( ( TheMesh.vertices[ y1Index ].y + ( top.transform.position.y + topMod - origTop.y ) ) -
-			                     ( TheMesh.vertices[ y0Index ].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
+            float s0 = Face.x;
+            float s1 = Face.x + Face.width;
+            float t0 = Face.y;
+            float t1 = Face.y + Face.height;
 
-            float sc = (s0 - ((TheMesh.vertices[x0Index].x - (right.transform.position.x + rightMod - origRight.x)) * dsx));
-            float tc = (t0 - ((TheMesh.vertices[y0Index].y + (bottom.transform.position.y + bottomMod - origBottom.y)) * dty));
+            Vector2 leftEyeStartingPoint = new Vector2((EyeLeft.x / ImageWidth), (EyeLeft.y / ImageHeight));
+            Vector2 leftEyeEndingPoint = new Vector2(((EyeLeft.x + EyeLeft.width) / ImageWidth), ((EyeLeft.y + EyeLeft.height) / ImageHeight));
+            Rect leftEyeUVRect = new Rect(leftEyeStartingPoint, leftEyeEndingPoint);
 
-			//calculate what UV values should be mapped and map them
-            for (int i = 0; i < mainBodyArray.Count; i++)
-            {
-                Vector2 vals = new Vector2(((mainBodyArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((mainBodyArray[i].VectorLocal.y * dty + tc) / ImageHeight));
-                theUVs[mainBodyArray[i].Index] = vals;
-            }
+            //calculate values as per algorithm using the points given in image and model
+            //adjusting to user input
+            float dsx = ((s1 - s0) / ((TheMesh.vertices[x1Index].x - (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * -1)) -
+                                 (TheMesh.vertices[x0Index].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1))));
+            float dty = ((t1 - t0) / ((TheMesh.vertices[y1Index].y + (((origTop.y - top.transform.position.y) + currentMods.ReferencedAdjustments.TopModification) * -1)) -
+                                 (TheMesh.vertices[y0Index].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1))));
 
-			//for all values not in the face, grab a generic point, at the nose, and color the rest of the body accordingly
+            float sc = (s0 - ((TheMesh.vertices[x0Index].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1)) * dsx));
+            float tc = (t0 - ((TheMesh.vertices[y0Index].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1)) * dty));
+
             Vector2 val = new Vector2(((TheMesh.vertices[noseIndex].x * dsx + sc) / ImageWidth), ((TheMesh.vertices[noseIndex].y * dty + tc) / ImageHeight));
 
+            Rect altEyeLeft = new Rect(EyeLeft.x, EyeLeft.y, EyeLeft.width, (EyeLeft.height * (1f/2f)));
+            Rect altEyeRight = new Rect(EyeRight.x, EyeRight.y, EyeRight.width, (EyeRight.height * (1f/2f)));
+
+            //calculate what UV values should be mapped and map them
+            for (int i = 0; i < mainBodyArray.Count; i++)
+            {
+                Vector2 vals = new Vector2(((mainBodyArray[i].VectorLocal.x * dsx + sc)), ((mainBodyArray[i].VectorLocal.y * dty + tc)));
+                if (!altEyeLeft.Contains(vals) && !altEyeRight.Contains(vals) && Face.Contains(vals))
+                {
+                    vals.x = (vals.x / ImageWidth);
+                    vals.y = (vals.y / ImageHeight);
+                }
+                else
+                {
+                    vals = val;
+                }
+                theUVs[mainBodyArray[i].Index] = vals;
+            }
+            
             for (int i = 0; i < altBodyArray.Count; i++)
             {
+                //for all values not in the face, grab a generic point, at the nose, and color the rest of the body accordingly
                 //Vector2 vals = new Vector2(((altBodyArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((altBodyArray[i].VectorLocal.y * dty + tc) / ImageHeight));
                 theUVs[altBodyArray[i].Index] = val;
             }
@@ -902,106 +970,112 @@ public class UVMapping : MonoBehaviour {
             TheMesh.uv = theUVs;
         }
 	}
+    
+    void SetEyes()
+    {
+        if (currentState == state.EyeR)
+        {
+            float s0 = EyeRight.x;
+            float s1 = EyeRight.x + EyeRight.width;
+            float t0 = EyeRight.y;
+            float t1 = EyeRight.y + (EyeRight.height / 1.5f);
 
-	void SetEyes()
-	{
-		float s0 = EyeRight.x;
-		float s1 = EyeRight.x + EyeRight.width;
-		float t0 = EyeRight.y;
-		float t1 = EyeRight.y + (EyeRight.height / 2);
+            float dsx = ((s1 - s0) / ((EyeMesh.vertices[x1RightEye].x - (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * -1)) -
+                (EyeMesh.vertices[x0RightEye].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1))));
+            float dty = ((t1 - t0) / ((EyeMesh.vertices[y1RightEye].y + (((origTop.y - top.transform.position.y) + currentMods.ReferencedAdjustments.TopModification) * -1)) -
+                (EyeMesh.vertices[y0RightEye].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1))));
 
-		float dsx = ((s1 - s0) / ((EyeMesh.vertices [x1RightEye].x - ((left.transform.position.x - origLeft.x) * 3)) - 
-			(EyeMesh.vertices [x0RightEye].x - ((right.transform.position.x - origRight.x) * 3))));
-		float dty = ((t1 - t0) / ((EyeMesh.vertices [y1RightEye].y + ((top.transform.position.y - origTop.y) * 5)) - 
-			(EyeMesh.vertices [y0RightEye].y + ((bottom.transform.position.y - origBottom.y) * 5))));
+            float sc = (s0 - ((EyeMesh.vertices[x0RightEye].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1)) * dsx));
+            float tc = (t0 - ((EyeMesh.vertices[y0RightEye].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1)) * dty));
 
-		float sc = ( s0 - ((EyeMesh.vertices [x0RightEye].x - ((right.transform.position.x - origRight.x) * 3)) * dsx ));
-		float tc = ( t0 - ((EyeMesh.vertices [y0RightEye].y + ((bottom.transform.position.y - origBottom.y) * 5)) * dty ));
+            for (int i = 0; i < rightVerts.Count; i++)
+            {
+                Vector2 vals = new Vector2(((rightVerts[i].VectorLocal.x * dsx + sc) / ImageWidth), ((rightVerts[i].VectorLocal.y * dty + tc) / ImageHeight));
+                eyesUVs[rightVerts[i].Index] = vals;
+                //TheMesh.uv[vertexArray[i].Index] = vals;
+            }
+        }
 
-		for( int i = 0; i < rightVerts.Count; i++ )
-		{
-			Vector2 vals = new Vector2 ((( rightVerts[i].VectorLocal.x * dsx + sc ) / ImageWidth), (( rightVerts[i].VectorLocal.y * dty + tc ) / ImageHeight));
-			eyesUVs [rightVerts[i].Index] = vals;
-			//TheMesh.uv[vertexArray[i].Index] = vals;
-		}
+        if (currentState == state.EyeL)
+        {
+            float s0 = EyeLeft.x;
+            float s1 = EyeLeft.x + EyeLeft.width;
+            float t0 = EyeLeft.y;
+            float t1 = EyeLeft.y + (EyeLeft.height / 1.5f);
 
-		s0 = EyeLeft.x;
-		s1 = EyeLeft.x + EyeLeft.width;
-		t0 = EyeLeft.y;
-		t1 = EyeLeft.y + (EyeLeft.height / 2);
+            float dsx = ((s1 - s0) / ((EyeMesh.vertices[x1LeftEye].x - (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * -1)) -
+                (EyeMesh.vertices[x0LeftEye].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1))));
+            float dty = ((t1 - t0) / ((EyeMesh.vertices[y1LeftEye].y + (((origTop.y - top.transform.position.y) + currentMods.ReferencedAdjustments.TopModification) * -1)) -
+                (EyeMesh.vertices[y0LeftEye].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1))));
 
-		dsx = ((s1 - s0) / ((EyeMesh.vertices [x1LeftEye].x - ((left.transform.position.x - origLeft.x) * 3)) - 
-			(EyeMesh.vertices [x0LeftEye].x - ((right.transform.position.x - origRight.x) * 3))));
-		dty = ((t1 - t0) / ((EyeMesh.vertices [y1LeftEye].y + ((top.transform.position.y - origTop.y) * 5)) - 
-			(EyeMesh.vertices [y0LeftEye].y + ((bottom.transform.position.y - origBottom.y) * 5))));
+            float sc = (s0 - ((EyeMesh.vertices[x0LeftEye].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -1)) * dsx));
+            float tc = (t0 - ((EyeMesh.vertices[y0LeftEye].y + (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * -1)) * dty));
 
-		sc = ( s0 - ((EyeMesh.vertices [x0LeftEye].x - ((right.transform.position.x - origRight.x) * 3)) * dsx ));
-		tc = ( t0 - ((EyeMesh.vertices [y0LeftEye].y + ((bottom.transform.position.y - origBottom.y) * 5)) * dty ));
+            for (int i = 0; i < leftVerts.Count; i++)
+            {
+                Vector2 vals = new Vector2(((leftVerts[i].VectorLocal.x * dsx + sc) / ImageWidth), ((leftVerts[i].VectorLocal.y * dty + tc) / ImageHeight));
+                eyesUVs[leftVerts[i].Index] = vals;
+                //TheMesh.uv[vertexArray[i].Index] = vals;
+            }
+        }
 
-		for( int i = 0; i < leftVerts.Count; i++ )
-		{
-			Vector2 vals = new Vector2 ((( leftVerts[i].VectorLocal.x * dsx + sc ) / ImageWidth), (( leftVerts[i].VectorLocal.y * dty + tc ) / ImageHeight));
-			eyesUVs [leftVerts[i].Index] = vals;
-			//TheMesh.uv[vertexArray[i].Index] = vals;
-		}
+        EyeMesh.uv = eyesUVs;
+    }
 
-		EyeMesh.uv = eyesUVs;
-	}
+    void SetShirt()
+    {
+        float s0 = (ImageWidth / 2) - 300;
+        float s1 = (ImageWidth / 2) + 300;
+        float t0 = (ImageHeight / 2) - 300;
+        float t1 = (ImageHeight / 2) + 300;
 
-	void SetShirt()
-	{
-		float s0 = (ImageWidth / 2) - 300;
-		float s1 = (ImageWidth / 2) + 300;
-		float t0 = (ImageHeight / 2) - 300;
-		float t1 = (ImageHeight / 2) + 300;
+        float dsx = ((s1 - s0) / ((ShirtMesh.vertices[x1Shirt].x + (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * 5)) -
+                    (ShirtMesh.vertices[x0Shirt].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5))));
+        float dty = ((t1 - t0) / ((ShirtMesh.vertices[y1Shirt].y + (((origTop.y - top.transform.position.y) + currentMods.ReferencedAdjustments.TopModification) * -5)) -
+                    (ShirtMesh.vertices[y0Shirt].y - (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * 5))));
 
-		float dsx = ( ( s1 - s0 ) / ( ( ShirtMesh.vertices[ x0Shirt ].x + ( right.transform.position.x + leftMod - origLeft.x ) ) -
-			( ShirtMesh.vertices[ x1Shirt ].x - ( left.transform.position.x + rightMod - origRight.x ) ) ) );
-		float dty = ( ( t1 - t0 ) / ( ( ShirtMesh.vertices[ y1Shirt ].y + ( top.transform.position.y + topMod - origTop.y ) ) -
-		            ( ShirtMesh.vertices[ y0Shirt ].y - ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
+        float sc = (s0 - ((ShirtMesh.vertices[x0Shirt].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5)) * dsx));
+        float tc = (t0 - ((ShirtMesh.vertices[y0Shirt].y - (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * 5)) * dty));
 
-		float sc = ( s0 - ( ( ShirtMesh.vertices [x1Shirt].x - ( left.transform.position.x + rightMod - origRight.x ) ) * dsx ) );
-		float tc = ( t0 - ( ( ShirtMesh.vertices [y0Shirt].y - ( bottom.transform.position.y + bottomMod - origBottom.y ) ) * dty ) );
+        try
+        {
+            for (int i = 0; i < mainShirtArray.Count; i++)
+            {
+                Vector2 vals = new Vector2(((mainShirtArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((mainShirtArray[i].VectorLocal.y * dty + tc) / ImageHeight));
+                shirtUVs[mainShirtArray[i].Index] = vals;
+                //TheMesh.uv[vertexArray[i].Index] = vals;
+            }
+        }
+        catch (Exception e)
+        {
+            string temp = e.Message;
+        }
 
-		try
-		{
-			for( int i = 0; i < mainShirtArray.Count; i++ )
-			{
-				Vector2 vals = new Vector2 (( ( mainShirtArray [i].VectorLocal.x * dsx + sc ) / ImageWidth ), ( ( mainShirtArray [i].VectorLocal.y * dty + tc ) / ImageHeight ));
-				shirtUVs [mainShirtArray [i].Index] = vals;
-				//TheMesh.uv[vertexArray[i].Index] = vals;
-			}
-		}
-		catch( Exception e )
-		{
-			string temp = e.Message;
-		}
-
-		/*Vector2 val = new Vector2 (( ( ShirtMesh.vertices [noseIndex].x * dsx + sc ) / ImageWidth ), ( ( ShirtMesh.vertices [noseIndex].y * dty + tc ) / ImageHeight ));
+        /*Vector2 val = new Vector2 (( ( ShirtMesh.vertices [noseIndex].x * dsx + sc ) / ImageWidth ), ( ( ShirtMesh.vertices [noseIndex].y * dty + tc ) / ImageHeight ));
 
 		for( int i = 0; i < altBodyArray.Count; i++ )
 		{
 			theUVs [altBodyArray [i].Index] = val;
 		}*/
 
-		ShirtMesh.uv = shirtUVs;
-	}
+        ShirtMesh.uv = shirtUVs;
+    }
 
-	void SetPants()
+    void SetPants()
 	{
 		float s0 = (ImageWidth / 2) - 300;
 		float s1 = (ImageWidth / 2) + 300;
 		float t0 = (ImageHeight / 2) - 600;
 		float t1 = (ImageHeight / 2);
 
-		float dsx = ( ( s1 - s0 ) / ( ( PantMesh.vertices[ x1Pants ].x - ( left.transform.position.x + leftMod - origLeft.x ) ) -
-		            ( PantMesh.vertices[ x0Pants ].x + ( right.transform.position.x + rightMod - origRight.x ) ) ) );
+		float dsx = ( ( s1 - s0 ) / ( ( PantMesh.vertices[ x1Pants ].x - ( left.transform.position.x + currentMods.ReferencedAdjustments.LeftModification - origLeft.x ) ) -
+		            ( PantMesh.vertices[ x0Pants ].x + ( right.transform.position.x + currentMods.ReferencedAdjustments.RightModification - origRight.x ) ) ) );
 
-		float dty = ( ( t1 - t0 ) / ( ( PantMesh.vertices[ y1Pants ].y - ( top.transform.position.y + topMod - origTop.y ) ) -
-		            ( PantMesh.vertices[ y0Pants ].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) ) );
+		float dty = ( ( t1 - t0 ) / ( ( PantMesh.vertices[ y1Pants ].y - ( top.transform.position.y + currentMods.ReferencedAdjustments.TopModification - origTop.y ) ) -
+		            ( PantMesh.vertices[ y0Pants ].y + ( bottom.transform.position.y + currentMods.ReferencedAdjustments.BottomModification - origBottom.y ) ) ) );
 
-		float sc = ( s0 - ( ( PantMesh.vertices [x0Pants].x + ( right.transform.position.x + rightMod - origRight.x ) ) * dsx ) );
-		float tc = ( t0 - ( ( PantMesh.vertices [y0Pants].y + ( bottom.transform.position.y + bottomMod - origBottom.y ) ) * dty ) );
+		float sc = ( s0 - ( ( PantMesh.vertices [x0Pants].x + ( right.transform.position.x + currentMods.ReferencedAdjustments.RightModification - origRight.x ) ) * dsx ) );
+		float tc = ( t0 - ( ( PantMesh.vertices [y0Pants].y + ( bottom.transform.position.y + currentMods.ReferencedAdjustments.BottomModification - origBottom.y ) ) * dty ) );
 
 		try
 		{
