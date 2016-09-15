@@ -560,17 +560,40 @@ public class UVMapping : MonoBehaviour {
 			mainShirtArray.Add( new VectorI (i, ShirtMesh.vertices [i]) );
 		}
 
-		/*mainShirtArray = ( from vert in mainShirtArray
+        //Initialize a temporary vector to the same size
+        VectorI[] temp1 = new VectorI[ShirtMesh.vertices.Length];
+        
+        mainShirtArray = (from vert in mainShirtArray
+                          select vert).OrderBy(y => y.VectorLocal.x).ToList();
+
+        int maths = (int)(mainShirtArray.Count * (1f / 4f));
+        mainShirtArray.CopyTo(0, temp1, 0, maths);
+        
+        mainShirtArray.RemoveRange(0, maths);
+        
+        mainShirtArray = (from vert in mainShirtArray
+                          select vert).OrderByDescending(y => y.VectorLocal.x).ToList();
+        
+        mainShirtArray.CopyTo(0, temp1, maths, maths);
+        
+        mainShirtArray.RemoveRange(0, maths);
+
+        mainShirtArray = ( from vert in mainShirtArray
 			select vert ).OrderBy( y => y.VectorLocal.z ).ToList();
 
-		altShirtArray = ( from vert in mainShirtArray
-			select vert ).OrderByDescending( y => y.VectorLocal.z ).ToList();
+        maths = (mainShirtArray.Count / 2);
+        mainShirtArray.CopyTo(0, temp1, (maths*2), maths);
 
-		mainShirtArray.RemoveRange( 0, mainShirtArray.Count / 2 );
+        mainShirtArray.RemoveRange( 0, maths);
 
-		altShirtArray.RemoveRange( 0, altShirtArray.Count / 2 );*/
+        altShirtArray = (from vert in temp1
+                        where vert != null
+                        select vert).ToList();
 
-		VectorI temp = ( from vert in mainShirtArray
+        mainShirtArray = (from vert in mainShirtArray
+                          select vert).OrderBy(y => y.VectorLocal.x).ToList();
+
+        VectorI temp = ( from vert in mainShirtArray
 		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList()[ 0 ];
 		x0Shirt = temp.Index;
 
@@ -585,7 +608,7 @@ public class UVMapping : MonoBehaviour {
         temp = ( from vert in mainShirtArray
 		         select vert ).OrderByDescending( y => y.VectorLocal.y ).Take( 1 ).ToList()[ 0 ];
 		y1Shirt = temp.Index;
-	}
+    }
 
 	int x0Pants;
 	int x1Pants;
@@ -594,7 +617,7 @@ public class UVMapping : MonoBehaviour {
 	void FindPantsValues()
 	{
 		mainPantsArray = new List<VectorI> ();
-		altPantsArray = new List<VectorI> ();
+		//altPantsArray = new List<VectorI> ();
 		List<VectorI> tempVerts = new List<VectorI>();
 
 		for( int i = 0; i < PantMesh.vertices.Length; i++ )
@@ -1036,27 +1059,19 @@ public class UVMapping : MonoBehaviour {
 
         float sc = (s0 - ((ShirtMesh.vertices[x0Shirt].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5)) * dsx));
         float tc = (t0 - ((ShirtMesh.vertices[y0Shirt].y - (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * 5)) * dty));
-
-        try
+        
+        for (int i = 0; i < mainShirtArray.Count; i++)
         {
-            for (int i = 0; i < mainShirtArray.Count; i++)
-            {
-                Vector2 vals = new Vector2(((mainShirtArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((mainShirtArray[i].VectorLocal.y * dty + tc) / ImageHeight));
-                shirtUVs[mainShirtArray[i].Index] = vals;
-                //TheMesh.uv[vertexArray[i].Index] = vals;
-            }
-        }
-        catch (Exception e)
-        {
-            string temp = e.Message;
+            Vector2 vals = new Vector2(((mainShirtArray[i].VectorLocal.x * dsx + sc) / ImageWidth), ((mainShirtArray[i].VectorLocal.y * dty + tc) / ImageHeight));
+            shirtUVs[mainShirtArray[i].Index] = vals;
         }
 
-        /*Vector2 val = new Vector2 (( ( ShirtMesh.vertices [noseIndex].x * dsx + sc ) / ImageWidth ), ( ( ShirtMesh.vertices [noseIndex].y * dty + tc ) / ImageHeight ));
+        Vector2 val = new Vector2 (( ( ShirtMesh.vertices [y0Shirt].x * dsx + sc ) / ImageWidth ), ( ( ShirtMesh.vertices [y0Shirt].y * dty + tc ) / ImageHeight ));
 
-		for( int i = 0; i < altBodyArray.Count; i++ )
+		for( int i = 0; i < altShirtArray.Count; i++ )
 		{
-			theUVs [altBodyArray [i].Index] = val;
-		}*/
+            shirtUVs[altShirtArray[i].Index] = val;
+		}
 
         ShirtMesh.uv = shirtUVs;
     }
@@ -1068,27 +1083,19 @@ public class UVMapping : MonoBehaviour {
 		float t0 = (ImageHeight / 2) - 600;
 		float t1 = (ImageHeight / 2);
 
-		float dsx = ( ( s1 - s0 ) / ( ( PantMesh.vertices[ x1Pants ].x - ( left.transform.position.x + currentMods.ReferencedAdjustments.LeftModification - origLeft.x ) ) -
-		            ( PantMesh.vertices[ x0Pants ].x + ( right.transform.position.x + currentMods.ReferencedAdjustments.RightModification - origRight.x ) ) ) );
+        float dsx = ((s1 - s0) / ((PantMesh.vertices[x1Pants].x + (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * 5)) -
+                    (PantMesh.vertices[x0Pants].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5))));
+        float dty = ((t1 - t0) / ((PantMesh.vertices[y1Pants].y + (((origTop.y - top.transform.position.y) + currentMods.ReferencedAdjustments.TopModification) * -5)) -
+                    (PantMesh.vertices[y0Pants].y - (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * 5))));
 
-		float dty = ( ( t1 - t0 ) / ( ( PantMesh.vertices[ y1Pants ].y - ( top.transform.position.y + currentMods.ReferencedAdjustments.TopModification - origTop.y ) ) -
-		            ( PantMesh.vertices[ y0Pants ].y + ( bottom.transform.position.y + currentMods.ReferencedAdjustments.BottomModification - origBottom.y ) ) ) );
-
-		float sc = ( s0 - ( ( PantMesh.vertices [x0Pants].x + ( right.transform.position.x + currentMods.ReferencedAdjustments.RightModification - origRight.x ) ) * dsx ) );
-		float tc = ( t0 - ( ( PantMesh.vertices [y0Pants].y + ( bottom.transform.position.y + currentMods.ReferencedAdjustments.BottomModification - origBottom.y ) ) * dty ) );
-
-		try
+        float sc = (s0 - ((PantMesh.vertices[x0Pants].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5)) * dsx));
+        float tc = (t0 - ((PantMesh.vertices[y0Pants].y - (((origBottom.y - bottom.transform.position.y) + currentMods.ReferencedAdjustments.BottomModification) * 5)) * dty));
+        
+		for( int i = 0; i < mainPantsArray.Count; i++ )
 		{
-			for( int i = 0; i < mainShirtArray.Count; i++ )
-			{
-				Vector2 vals = new Vector2 (( ( mainPantsArray [i].VectorLocal.x * dsx + sc ) / ImageWidth ), ( ( mainPantsArray [i].VectorLocal.y * dty + tc ) / ImageHeight ));
-				pantsUVs [mainPantsArray [i].Index] = vals;
-				//TheMesh.uv[vertexArray[i].Index] = vals;
-			}
-		}
-		catch( Exception e )
-		{
-			string temp = e.Message;
+			Vector2 vals = new Vector2 (( ( mainPantsArray [i].VectorLocal.x * dsx + sc ) / ImageWidth ), ( ( mainPantsArray [i].VectorLocal.y * dty + tc ) / ImageHeight ));
+			pantsUVs [mainPantsArray [i].Index] = vals;
+			//TheMesh.uv[vertexArray[i].Index] = vals;
 		}
 
 		/*Vector2 val = new Vector2 (( ( ShirtMesh.vertices [noseIndex].x * dsx + sc ) / ImageWidth ), ( ( ShirtMesh.vertices [noseIndex].y * dty + tc ) / ImageHeight ));
