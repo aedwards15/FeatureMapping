@@ -337,6 +337,14 @@ public class UVMapping : MonoBehaviour {
         left.SetActive(false);
         bottom.SetActive(false);
         top.SetActive(false);
+
+        currentMods = new AdjustmentList(new AdjustmentList());
+        for (int i = 0; i < 6; i++)
+        {
+            currentState = (state)i;
+            SetTheUVs();
+        }
+
     }
 
 	/// <summary>
@@ -1047,10 +1055,10 @@ public class UVMapping : MonoBehaviour {
 
     void SetShirt()
     {
-        float s0 = (ImageWidth / 2) - 300;
-        float s1 = (ImageWidth / 2) + 300;
-        float t0 = (ImageHeight / 2) - 300;
-        float t1 = (ImageHeight / 2) + 300;
+        float s0 = (ImageWidth / 2) - 400;
+        float s1 = (ImageWidth / 2) + 400;
+        float t0 = (ImageHeight / 2) - 100;
+        float t1 = (ImageHeight / 2) + 1000;
 
         float dsx = ((s1 - s0) / ((ShirtMesh.vertices[x1Shirt].x + (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * 5)) -
                     (ShirtMesh.vertices[x0Shirt].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5))));
@@ -1080,8 +1088,8 @@ public class UVMapping : MonoBehaviour {
 	{
 		float s0 = (ImageWidth / 2) - 300;
 		float s1 = (ImageWidth / 2) + 300;
-		float t0 = (ImageHeight / 2) - 600;
-		float t1 = (ImageHeight / 2);
+		float t0 = (ImageHeight / 2) - 800;
+		float t1 = (ImageHeight / 2) - 100;
 
         float dsx = ((s1 - s0) / ((PantMesh.vertices[x1Pants].x + (((origLeft.x - left.transform.position.x) + currentMods.ReferencedAdjustments.LeftModification) * 5)) -
                     (PantMesh.vertices[x0Pants].x - (((origRight.x - right.transform.position.x) + currentMods.ReferencedAdjustments.RightModification) * -5))));
