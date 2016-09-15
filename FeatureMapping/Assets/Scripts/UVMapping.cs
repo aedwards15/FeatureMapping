@@ -822,23 +822,30 @@ public class UVMapping : MonoBehaviour {
 		{
             if (Input.GetTouch(0).phase == TouchPhase.Began)
             {
-                Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position);
+                //Grab where it hit in the world
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 RaycastHit hit;
 
+                //If it hit anything
                 if (Physics.Raycast(ray, out hit))
                 {
-                    if (currentState != state.Body && hit.transform.gameObject.transform.parent.tag != "Player")
+                    //Find out if it hit the player, and where, or if it hit an adjuster
+                    if (hit.transform.gameObject.name == "Adjuster")
                     {
                         selectedPoint = hit.transform.gameObject;
 
                         screenPoint = Camera.main.WorldToScreenPoint(selectedPoint.transform.position);
-                        offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z));
+                        offset = selectedPoint.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
                     }
                     else if (hit.transform.gameObject.tag == "Head")
                     {
+                        //If the player tapped on the head, zoom in to the face and set current state as Face
                         playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
                         currentState = state.Face;
 
+                        currentMods = new AdjustmentList(faceMods);
+
+                        //Show the adjuster bars
                         left.SetActive(true);
                         right.SetActive(true);
                         top.SetActive(true);
@@ -846,28 +853,67 @@ public class UVMapping : MonoBehaviour {
                     }
                     else if (hit.transform.gameObject.tag == "Eyes")
                     {
-                        //playerModel.transform.position = new Vector3(0.0f, -3.84f, -8.74f);
-                        //currentState = state.Eyes;
+                        if (!isRightEye)
+                        {
+                            isRightEye = true;
+                            playerModel.transform.position = new Vector3(0.06f, -3.84f, -8.99f);
+                            currentState = state.EyeR;
+
+                            currentMods = new AdjustmentList(eyeRMods);
+                        }
+                        else
+                        {
+                            isRightEye = false;
+                            playerModel.transform.position = new Vector3(-0.06f, -3.84f, -8.99f);
+                            currentState = state.EyeL;
+
+                            currentMods = new AdjustmentList(eyeLMods);
+                        }
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
+                        right.SetActive(true);
+                        top.SetActive(true);
+                        bottom.SetActive(true);
                     }
                     else if (hit.transform.gameObject.tag == "Shirt")
                     {
                         playerModel.transform.position = new Vector3(0.0f, -2.944f, -7.549f);
                         currentState = state.Shirt;
+
+                        currentMods = new AdjustmentList(shirtMods);
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
+                        right.SetActive(true);
+                        top.SetActive(true);
+                        bottom.SetActive(true);
                     }
                     else if (hit.transform.gameObject.tag == "Pants")
                     {
                         playerModel.transform.position = new Vector3(0.0f, -1.342f, -7.752f);
                         currentState = state.Pants;
+
+                        currentMods = new AdjustmentList(pantMods);
+
+                        //Show the adjuster bars
+                        left.SetActive(true);
+                        right.SetActive(true);
+                        top.SetActive(true);
+                        bottom.SetActive(true);
                     }
                 }
             }
             else if (Input.GetTouch(0).phase == TouchPhase.Moved)
             {
+                //Else if the mouse buttin is being held down
                 if (selectedPoint != null)
                 {
-                    Vector3 cursorPoint = new Vector3(Input.GetTouch(0).position.x, Input.GetTouch(0).position.y, screenPoint.z);
+                    //and an object has been clicked on then
+                    Vector3 cursorPoint = new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z);
                     Vector3 cursorPosition = Camera.main.ScreenToWorldPoint(cursorPoint) + offset;
 
+                    //If it's and adjuster, move it, and adjust the UVs
                     if (selectedPoint.tag == "Left" || selectedPoint.tag == "Right")
                     {
                         selectedPoint.transform.position = new Vector3(cursorPosition.x, selectedPoint.transform.position.y, selectedPoint.transform.position.z);
@@ -882,26 +928,28 @@ public class UVMapping : MonoBehaviour {
             }
             else if (Input.GetTouch(0).phase == TouchPhase.Ended)
             {
+                //Else if we're releasing the click
                 if (selectedPoint != null)
                 {
+                    //and an adjuster was selected, move it back to it's original location and keep track of the difference
                     if (selectedPoint.tag == "Left")
                     {
-                        currentMods.ReferencedAdjustments.LeftModification += selectedPoint.transform.position.x - origLeft.x;
+                        currentMods.ReferencedAdjustments.LeftModification += origLeft.x - selectedPoint.transform.position.x;
                         selectedPoint.transform.position = origLeft;
                     }
                     else if (selectedPoint.tag == "Right")
                     {
-                        currentMods.ReferencedAdjustments.RightModification += selectedPoint.transform.position.x - origRight.x;
+                        currentMods.ReferencedAdjustments.RightModification += origRight.x - selectedPoint.transform.position.x;
                         selectedPoint.transform.position = origRight;
                     }
                     else if (selectedPoint.tag == "Top")
                     {
-                        currentMods.ReferencedAdjustments.TopModification += selectedPoint.transform.position.y - origTop.y;
+                        currentMods.ReferencedAdjustments.TopModification += origTop.y - selectedPoint.transform.position.y;
                         selectedPoint.transform.position = origTop;
                     }
                     else
                     {
-                        currentMods.ReferencedAdjustments.BottomModification += selectedPoint.transform.position.y - origBottom.y;
+                        currentMods.ReferencedAdjustments.BottomModification += origBottom.y - selectedPoint.transform.position.y;
                         selectedPoint.transform.position = origBottom;
                     }
 
