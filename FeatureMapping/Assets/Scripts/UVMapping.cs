@@ -35,6 +35,8 @@ public class UVMapping : MonoBehaviour {
 
 	#region PRIVATE_INTIALIZERS
 
+	private VideoPicker videoPicker;
+
 	[System.Serializable]
 	private class VectorI
 	{
@@ -164,8 +166,13 @@ public class UVMapping : MonoBehaviour {
 
 	#region START
 
+	StreamWriter errorWriter;
 	void Start()
 	{
+		errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+		errorWriter.WriteLine( "Start\n");
+		errorWriter.Close();
+
 		//Each part of the model is labeled, it's either the Eyes, the Shirt, the Pants, or everything else
 		//The file rests on the face and body mesh, and then finds the rest via their tags
 		TheMesh = this.gameObject.GetComponent<MeshFilter>().mesh;
@@ -196,6 +203,51 @@ public class UVMapping : MonoBehaviour {
 		//This is an array of the "important" vertices (ie the face)
 		mainBodyArray = new List<VectorI> ();
 
+		videoPicker = GetComponent<VideoPicker>();
+
+		if (File.Exists( "/private/var/mobile/Containers/Shared/AppGroup/92805BB8-0BDB-496D-A014-68589223B854/Data.txt"))
+		{
+			errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+			errorWriter.WriteLine( "Made it to data.txt parse" );
+			errorWriter.Close();
+			var sr = File.OpenText( "/private/var/mobile/Containers/Shared/AppGroup/92805BB8-0BDB-496D-A014-68589223B854/Data.txt" );
+			String data = sr.ReadToEnd();
+			sr.Close();
+			string[] vals = data.Split(new string[]{"\n"}, StringSplitOptions.RemoveEmptyEntries );
+
+			videoPicker.Path = vals[ 0 ];
+
+			string[] rects = vals[ 1 ].Split( new string[]{ "," }, StringSplitOptions.None );
+			Face.x = float.Parse(rects[ 0 ]);
+			Face.y = float.Parse(rects[ 1 ]);
+			Face.width = float.Parse( rects[ 2 ] );
+			Face.height = float.Parse(rects[ 3 ]);
+
+			rects = vals[ 2 ].Split( new string[]{ "," }, StringSplitOptions.None );
+			EyeLeft.x = float.Parse(rects[ 0 ]);
+			EyeLeft.y = float.Parse(rects[ 1 ]);
+			EyeLeft.width = float.Parse(rects[ 2 ]);
+			EyeLeft.height = float.Parse(rects[ 3 ]);
+
+			rects = vals[ 3 ].Split( new string[]{ "," }, StringSplitOptions.None );
+			EyeRight.x = float.Parse( rects[ 0 ] );
+			EyeRight.y = float.Parse(rects[ 1 ]);
+			EyeRight.width = float.Parse(rects[ 2 ]);
+			EyeRight.height = float.Parse(rects[ 3 ]);
+
+			rects = vals[ 4 ].Split( new string[]{ "," }, StringSplitOptions.None );
+			Mouth.x = float.Parse(rects[ 0 ]);
+			Mouth.y = float.Parse(rects[ 1 ]);
+			Mouth.width = float.Parse(rects[ 2 ]);
+			Mouth.height = float.Parse(rects[ 3 ]);
+
+			rects = vals[ 5 ].Split( new string[]{ "," }, StringSplitOptions.None );
+			Nose.x = float.Parse(rects[ 0 ]);
+			Nose.y = float.Parse(rects[ 1 ]);
+			Nose.width = float.Parse(rects[ 2 ]);
+			Nose.height = float.Parse(rects[ 3 ]);
+		}
+
 		if( File.Exists( Application.persistentDataPath + "/HeadVertices.txt" ) )
 		{
 			File.Delete( Application.persistentDataPath + "/HeadVertices.txt" );
@@ -214,23 +266,23 @@ public class UVMapping : MonoBehaviour {
 
 			//Get point associated with nose (ie the highest z-valued item in the head
 			noseIndex = Convert.ToInt32( parse[0].Split( '=' ) [1] );
-            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[noseIndex]), Quaternion.identity);
+            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[noseIndex]), Quaternion.identity);
 
 			//Get point associated with far right (from model's perspective) of face
             x0Index = Convert.ToInt32( parse[1].Split( '=' ) [1] );
-            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
+            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x0Index]), Quaternion.identity);
 
 			//Get point associated with far left (from model's perspective) of face
 			x1Index = Convert.ToInt32( parse[2].Split( '=' ) [1] );
-            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x1Index]), Quaternion.identity);
+            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[x1Index]), Quaternion.identity);
 
 			//Get point associated with far bottom of face
             y0Index = Convert.ToInt32( parse[3].Split( '=' ) [1] );
-            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y0Index]), Quaternion.identity);
+            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y0Index]), Quaternion.identity);
 
 			//Get point associated with far top of face
             y1Index = Convert.ToInt32( parse[4].Split( '=' ) [1] );
-            //Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y1Index]), Quaternion.identity);
+            Instantiate(pointLocation, transform.TransformPoint(TheMesh.vertices[y1Index]), Quaternion.identity);
 
 			//Get the remainder of the "important" points, their index and their local vertex (starting after the above reference points)
             for ( int i = 5; i < parse.Length; i++ )
@@ -436,6 +488,7 @@ public class UVMapping : MonoBehaviour {
 
 		//Create the file, specifying notworthy points first
 		var sr = File.CreateText( Application.persistentDataPath + "/HeadVertices.txt" );
+		sr.WriteLine( Application.persistentDataPath + "/HeadVertices.txt" );
 		sr.WriteLine( String.Format( "nose={0}", noseIndex ) );
 		sr.WriteLine( String.Format( "right={0}", x0Index ) );
 		sr.WriteLine( String.Format( "left={0}", x1Index ) );
@@ -507,7 +560,7 @@ public class UVMapping : MonoBehaviour {
 		VectorI temp = ( from vert in rightVerts
 		                 select vert ).OrderByDescending( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
 		x0RightEye = temp.Index;
-        Instantiate(pointLocation, transform.TransformPoint(EyeMesh.vertices[x0RightEye]), Quaternion.identity);
+        //Instantiate(pointLocation, transform.TransformPoint(EyeMesh.vertices[x0RightEye]), Quaternion.identity);
 
         temp = ( from vert in rightVerts
 		         select vert ).OrderBy( y => y.VectorLocal.x ).Take( 1 ).ToList() [0];
@@ -673,9 +726,53 @@ public class UVMapping : MonoBehaviour {
 	private GameObject selectedPoint;
 
     private bool isRightEye = false;
-
+	private bool test = true;
     void Update()
 	{
+		if( test)
+		{
+			errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+			errorWriter.WriteLine( "Inside videopicker update" );
+			errorWriter.Close();
+
+			if (File.Exists("/private/var/mobile/Containers/Shared/AppGroup/92805BB8-0BDB-496D-A014-68589223B854/myPhoto.jpg")) {
+				errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+				errorWriter.WriteLine( "Inside if exists update" );
+				errorWriter.Close();
+
+				Texture2D tex = null;
+				byte[] fileData;
+
+				try
+				{
+					fileData = File.ReadAllBytes("/private/var/mobile/Containers/Shared/AppGroup/92805BB8-0BDB-496D-A014-68589223B854/myPhoto.jpg");
+					tex = new Texture2D(2, 2);
+					tex.LoadImage(fileData); //..this will auto-resize the texture dimensions.
+
+					this.gameObject.GetComponent<Material>().mainTexture = tex;
+					GameObject gObj = GameObject.Find( "shirt01.obj" );
+					gObj.GetComponent<Material>().mainTexture = tex;
+					gObj = GameObject.Find( "jeans01.obj" );
+					gObj.GetComponent<Material>().mainTexture = tex;
+					gObj = GameObject.Find( "high-poly.obj" );
+					gObj.GetComponent<Material>().mainTexture = tex;
+
+
+					errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+					errorWriter.WriteLine( "End of if exists update" );
+					errorWriter.Close();
+
+					test = false;
+				}
+				catch (Exception e)
+				{
+					errorWriter = new StreamWriter( Application.persistentDataPath + "/Errors.txt", true);
+					errorWriter.WriteLine( "EXCEPTION: " + e.Message);
+					errorWriter.Close();
+				}
+			}
+		}
+
 		//Mouse button click handlers
 		{ //Blank brace is hear to match up with touch inputs
 			//If mouse button clicked down
